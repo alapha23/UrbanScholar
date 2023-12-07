@@ -16,26 +16,13 @@ import { appRouter } from "@/server/router";
 
 import { authOptions } from "./api/auth/[...nextauth]";
 
-const Home: NextPage<HomeProps> = ({
-  suggestedAccounts,
-  followingAccounts,
-  origin,
-}) => {
+const Home: NextPage<HomeProps> = ({}) => {
   return (
     <>
-      <Meta
-        title="TopTop - Make Your Day"
-        description="TopTop - trends start here"
-        image="/favicon.png"
-      />
-      <Navbar />
+     <Navbar />
       <div className="flex justify-center mx-4">
         <div className="w-full max-w-[1150px] flex">
-          <Sidebar
-            suggestedAccounts={suggestedAccounts!}
-            followingAccounts={followingAccounts!}
-          />
-          <Main origin={origin!} />
+         <Main origin={origin!} />
         </div>
       </div>
     </>
@@ -53,9 +40,7 @@ export const getServerSideProps = async ({
 }: GetServerSidePropsContext) => {
   const session = await getServerSession(req, res, authOptions);
 
-  const isFetchingFollowing = Boolean(Number(query.following));
-
-  if (isFetchingFollowing && !session?.user?.email) {
+  if (!session?.user?.email) {
     return {
       redirect: {
         destination: "/sign-in",
@@ -64,63 +49,13 @@ export const getServerSideProps = async ({
       props: {},
     };
   }
-
-  const ssg = createSSGHelpers({
-    router: appRouter,
-    ctx: {
-      req: undefined,
-      res: undefined,
-      prisma,
-      session,
-    },
-    transformer: superjson,
-  });
-
-  const [suggestedAccounts, followingAccounts] = await Promise.all([
-    prisma.user.findMany({
-      take: 20,
-      where: {
-        email: {
-          not: session?.user?.email,
-        },
+  else {
+    return {
+      redirect: {
+        destination: "/sign-in",
+        permanent: true,
       },
-      select: {
-        id: true,
-        image: true,
-        name: true,
-      },
-    }),
-    session?.user
-      ? prisma.follow.findMany({
-          where: {
-            // @ts-ignore
-            followerId: session?.user?.id,
-          },
-          select: {
-            following: {
-              select: {
-                id: true,
-                image: true,
-                name: true,
-              },
-            },
-          },
-        })
-      : Promise.resolve([]),
-    isFetchingFollowing
-      ? ssg.fetchInfiniteQuery("video.following", {})
-      : ssg.fetchInfiniteQuery("video.for-you", {}),
-  ]);
-
-  return {
-    props: {
-      trpcState: ssg.dehydrate(),
-      session,
-      suggestedAccounts,
-      followingAccounts: followingAccounts.map((item) => item.following),
-      origin: `${
-        req.headers.host?.includes("localhost") ? "http" : "https"
-      }://${req.headers.host}`,
-    },
-  };
+      props: {},
+    };
+  }
 };

@@ -1,5 +1,5 @@
 import { User, Video } from "@prisma/client";
-import Image from "next/future/image";
+import Image from 'next/image'
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { FC, useState } from "react";

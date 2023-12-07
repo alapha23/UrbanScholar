@@ -47,16 +47,15 @@ const SignIn: NextPage = () => {
 
   return (
     <>
-      <Meta title="Log in | TopTop" description="Log in" image="/favicon.png" />
+      <Meta title="Log in | UrbanScholar" description="Log in" image="/favicon.png" />
       <div className="min-h-screen flex flex-col items-stretch">
         <Navbar />
         <div className="flex-grow flex flex-col justify-center items-center gap-3">
           <h1 className="text-3xl text-center font-semibold">
-            Log in to TikTok
+            Log in to UrbanScholar
           </h1>
           <p className="text-center w-[95vw] max-w-[375px] text-sm text-gray-500">
-            Manage your account, check notifications, comment on videos, and
-            more.
+            Manage your account and converse with the Urban Planning Assistant.
           </p>
           <button
             onClick={() => handleSignIn("google")}
@@ -65,14 +64,7 @@ const SignIn: NextPage = () => {
             <span>Continue with Google</span>
             <FcGoogle className="absolute top-1/2 -translate-y-1/2 left-3 w-6 h-6" />
           </button>
-          <button
-            onClick={() => handleSignIn("facebook")}
-            className="w-[95vw] max-w-[375px] flex justify-center items-center relative border border-gray-200 hover:border-gray-400 transition h-11"
-          >
-            <span>Continue with Facebook</span>
-            <BsFacebook className="absolute top-1/2 -translate-y-1/2 left-3 w-6 h-6 fill-[#0A80EC]" />
-          </button>
-        </div>
+       </div>
       </div>
     </>
   );
@@ -86,7 +78,7 @@ export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
   if (session?.user) {
     return {
       redirect: {
-        destination: "/",
+        destination: "/chat",
         permanent: true,
       },
       props: {},

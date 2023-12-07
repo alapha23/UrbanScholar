@@ -24,20 +24,14 @@ Official website: [https://toptop-clone.vercel.app/](https://toptop-clone.vercel
 - next-auth
 - react-hot-toast
 
-## Features
-
-- Auth (Google, Facebook)
-- Upload video with thumbnail
-- Infinite loading
-- Follow user
-- Following tab
-- Like a video
-- Comment on a video
-- Share video on Facebook, Twitter, Reddit,...
-- User profile
-- Search accounts and videos
-- SEO
 
 ## Installation
+
+```
+npm install
+npx prisma migrate dev --name init
+npx prisma generate
+npm run dev
+```
 
 See [SELF-HOSTING.md](/SELF-HOSTING.md)

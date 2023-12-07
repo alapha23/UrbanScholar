@@ -1,4 +1,4 @@
-import Image from "next/future/image";
+import Image from 'next/image'
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { signOut, useSession } from "next-auth/react";
@@ -35,10 +35,10 @@ const Navbar: FC = () => {
       <div className="flex justify-center mx-4">
         <div className="w-full max-w-[1150px] flex justify-between items-center h-[60px]">
           <Link href="/">
-            <a className="flex items-end gap-1">
+            <div className="flex items-end gap-1">
               <Image src="/logo.png" alt="Logo" width={30} height={30} />
-              <span className="text-2xl leading-[1] font-bold">TopTop</span>
-            </a>
+              <span className="text-2xl leading-[1] font-bold">UrbanScholar</span>
+            </div>
           </Link>
           <form
             onSubmit={handleFormSubmit}
@@ -47,7 +47,7 @@ const Navbar: FC = () => {
             <input
               className="w-full h-full outline-none bg-gray-1 rounded-full pl-4 pr-14 border border-transparent focus:border-gray-400 transition"
               type="text"
-              placeholder="Search accounts and videos..."
+              placeholder="try: California Housing regression analysis..."
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
             />
@@ -60,17 +60,11 @@ const Navbar: FC = () => {
             </button>
           </form>
           <div className="flex items-center gap-3">
-            <Link href={status === "authenticated" ? "/upload" : "/sign-in"}>
-              <a className="border rounded flex items-center gap-2 h-9 px-3 border-gray-200 bg-white hover:bg-gray-100 transition">
-                <AiOutlinePlus className="w-5 h-5" />
-                <span>Upload</span>
-              </a>
-            </Link>
             {status === "unauthenticated" ? (
               <Link href="/sign-in">
-                <a className="rounded h-9 px-6 bg-pink text-white flex items-center hover:brightness-105 transition">
+                <div className="rounded h-9 px-6 bg-pink text-white flex items-center hover:brightness-105 transition">
                   Log In
-                </a>
+                </div>
               </Link>
             ) : status === "authenticated" ? (
               <ClickAwayListener onClickAway={() => setIsDropdownOpened(false)}>
@@ -96,10 +90,10 @@ const Navbar: FC = () => {
                     >
                       {/* @ts-ignore */}
                       <Link href={`/user/${session?.user?.id}`}>
-                        <a className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-gray-50 transition">
+                        <div className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-gray-50 transition">
                           <BiUser className="fill-black w-6 h-6" />
                           <span>Profile</span>
-                        </a>
+                        </div>
                       </Link>
                       <button
                         onClick={() => signOut()}
