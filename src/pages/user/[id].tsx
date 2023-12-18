@@ -3,7 +3,7 @@ import type {
   InferGetServerSidePropsType,
   NextPage,
 } from "next";
-import Image from "next/future/image";
+import Image from "next/image";
 import Link from "next/link";
 import { unstable_getServerSession as getServerSession } from "next-auth";
 import { useSession } from "next-auth/react";
@@ -113,14 +113,14 @@ const UserProfile: NextPage<UserProfileProps> = ({ user }) => {
               {user?.videos.map((video) => (
                 <div key={video.id}>
                   <Link href={`/video/${video.id}`}>
-                    <a className="block h-0 relative pb-[131%]">
+                    <div className="block h-0 relative pb-[131%]">
                       <img
                         className="absolute inset-0 h-full w-full object-cover rounded"
                         src={video.coverURL}
                         alt=""
                       />
                       <BsPlay className="absolute left-3 bottom-3 fill-white w-7 h-7" />
-                    </a>
+                    </div>
                   </Link>
                   <p className="whitespace-nowrap overflow-hidden text-ellipsis">
                     {video.caption}

@@ -1,32 +1,23 @@
-import React, { useState, useRef } from "react";
-import { useRouter } from "next/router";
-
 import type {
   GetServerSidePropsContext,
   InferGetServerSidePropsType,
   NextPage,
 } from "next";
 import { unstable_getServerSession as getServerSession } from "next-auth";
-
-import styles from "../styles/chat.module.css";
-import { authOptions } from "./api/auth/[...nextauth]";
+import { useSession } from "next-auth/react";
 import Navbar from "@/components/Layout/Navbar";
-import { trpc } from "@/utils/trpc";
+import { prisma } from "@/server/db/client";
+import { authOptions } from "../api/auth/[...nextauth]";
+import styles from "@/styles/chat.module.css";
+import React, { useState, useRef } from "react";
 
-type ConversationType = {
-  sender: string;
-  text: string;
-  imageUrl?: string;
-};
-
-const ChatPage: NextPage<ChatPageProps> = ({ userId }) => {
+const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
+  const session = useSession();
   const [input, setInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [conversation, setConversation] = useState<
     Array<{ sender: string; text: string; imageUrl?: string }>
   >([]);
-  const router = useRouter();
-  const chatCreateMutation = trpc.useMutation("chat.create");
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -34,25 +25,6 @@ const ChatPage: NextPage<ChatPageProps> = ({ userId }) => {
     const newConversation = [...conversation, { sender: "You", text: message }];
     setInput("");
 
-    chatCreateMutation
-      .mutateAsync({
-        userId: userId,
-      })
-      .then((chatId) => {
-        console.log(chatId);
-        router.push(`/chat/${chatId}`).then(() => {
-          handleSendMessage(message, newConversation);
-        });
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  };
-
-  const handleSendMessage = async (
-    message: string,
-    newConversation: ConversationType[]
-  ) => {
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -154,32 +126,61 @@ const ChatPage: NextPage<ChatPageProps> = ({ userId }) => {
   );
 };
 
-export default ChatPage;
+export default ChatProfile;
 
-type ChatPageProps = InferGetServerSidePropsType<typeof getServerSideProps>;
+type ChatProfileProps = InferGetServerSidePropsType<typeof getServerSideProps>;
 
 export const getServerSideProps = async ({
+  params,
   req,
   res,
-  query,
 }: GetServerSidePropsContext) => {
-  const session = await getServerSession(req, res, authOptions);
+  try {
+    const userId = params?.id as string;
 
-  if (!session?.user?.email) {
+    const session = (await getServerSession(req, res, authOptions)) as any;
+
+    const [chat] = await Promise.all([
+      prisma.chat
+        .findFirst({
+          where: { userId: userId },
+          select: {
+            id: true,
+            title: true,
+            content: true,
+          },
+        })
+        .then((foundChat: Object | null) => {
+          // If a chat is found, return it
+          if (foundChat) {
+            return foundChat;
+          }
+
+          // If no chat is found, create a new one
+          return prisma.chat.create({
+            data: {
+              userId: userId,
+              title: "New Chat",
+              content: "",
+            },
+            select: {
+              id: true,
+              title: true,
+              content: true,
+            },
+          });
+        }),
+    ]);
+
     return {
-      redirect: {
-        destination: "/sign-in",
-        permanent: true,
-      },
       props: {
-        userId: null,
+        session,
+        chat: {
+          ...chat,
+        },
       },
     };
-  } else {
-    return {
-      props: {
-        userId: session?.user?.id,
-      },
-    };
+  } catch (error) {
+    return { props: {}, notFound: true };
   }
 };

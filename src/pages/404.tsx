@@ -7,7 +7,7 @@ const NotFound: NextPage = () => {
   return (
     <>
       <Meta
-        title="Not Found | TopTop"
+        title="Not Found | UrbanScholar"
         description="Not Found"
         image="/favicon.png"
       />
@@ -15,7 +15,7 @@ const NotFound: NextPage = () => {
       <div className="min-h-screen flex flex-col items-center justify-center">
         <h1 className="text-center">The resource could not be found</h1>
         <Link href="/">
-          <a className="text-pink">Return Home</a>
+          <div className="text-pink">Return Home</div>
         </Link>
       </div>
     </>

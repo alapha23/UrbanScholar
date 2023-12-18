@@ -1,6 +1,8 @@
 /* eslint-disable */
 import { NextApiRequest, NextApiResponse } from 'next';
-import formidable, { File } from 'formidable';
+//import formidable, { File } from 'formidable';
+import { IncomingForm, File } from 'formidable';
+//const formidable = require('formidable');
 
 import fs from 'fs';
 import path from 'path';
@@ -14,7 +16,7 @@ export const config = {
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log('/api/upload');
   if (req.method === 'POST') {
-    const form = new formidable.IncomingForm();
+    const form = new IncomingForm();
     // @ts-ignore
     form.uploadDir = path.resolve(__dirname, '../../../../storage/user/');
 

@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useSession } from "next-auth/react";
@@ -30,7 +30,7 @@ const Sidebar: FC<SidebarProps> = ({
     <div className="w-[48px] border-r lg:border-none lg:w-[348px] h-[calc(100vh-60px)] sticky top-[60px] overflow-y-auto flex-shrink-0 py-5">
       <div className="flex flex-col items-stretch gap-5 [&_svg]:h-7 [&_svg]:w-7 font-semibold pb-6 border-b">
         <Link href="/">
-          <a
+          <div
             className={`flex items-center gap-2 ${
               !router.query.following
                 ? "fill-pink text-pink"
@@ -39,10 +39,10 @@ const Sidebar: FC<SidebarProps> = ({
           >
             {!router.query.following ? <AiFillHome /> : <AiOutlineHome />}
             <span className="hidden lg:inline">For You</span>
-          </a>
+          </div>
         </Link>
         <Link href={session.data?.user ? "/?following=1" : "/sign-in"}>
-          <a
+          <div
             className={`flex items-center gap-2 ${
               router.query.following
                 ? "fill-pink text-pink"
@@ -55,7 +55,7 @@ const Sidebar: FC<SidebarProps> = ({
               <RiUserShared2Line />
             )}
             <span className="hidden lg:inline">Following</span>
-          </a>
+          </div>
         </Link>
       </div>
 
@@ -64,7 +64,7 @@ const Sidebar: FC<SidebarProps> = ({
           <p className="text-sm hidden lg:block">Suggested Accounts</p>
           {suggestedAccounts.map((account) => (
             <Link href={`/user/${account.id}`} key={account.id}>
-              <a className="flex items-center gap-3">
+              <div className="flex items-center gap-3">
                 <Image
                   className="rounded-full object-cover"
                   height={36}
@@ -82,7 +82,7 @@ const Sidebar: FC<SidebarProps> = ({
                   </p>
                   <p className="font-light text-xs">{account.name}</p>
                 </div>
-              </a>
+              </div>
             </Link>
           ))}
         </div>
