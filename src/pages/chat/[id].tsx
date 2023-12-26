@@ -10,14 +10,19 @@ import { prisma } from "@/server/db/client";
 import { authOptions } from "../api/auth/[...nextauth]";
 import styles from "@/styles/chat.module.css";
 import React, { useState, useRef } from "react";
+import { useRouter } from "next/router";
 
 const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
   const session = useSession();
+  const router = useRouter();
+  const { task } = router.query;
   const [input, setInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [conversation, setConversation] = useState<
     Array<{ sender: string; text: string; imageUrl?: string }>
   >([]);
+
+  console.log(task);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -29,7 +34,11 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, conversationHistory: newConversation }),
+        body: JSON.stringify({
+          message,
+          task: task,
+          conversationHistory: newConversation,
+        }),
       });
 
       if (!response.ok) throw new Error("Network response was not ok.");
