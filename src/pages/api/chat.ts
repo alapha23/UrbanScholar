@@ -80,7 +80,7 @@ export default async function handler(
 
       // verify the names acquired from chat against indexes in CSV
       console.log("verify the names acquired from chat against indexes in CSV");
-      let indexLines: { [key: string]: string[] } = await readCSV();
+      let indexLines: { [key: string]: string[]; } = await readCSV();
       console.log(indexLines);
       if (JSON.stringify(indexLines) === "{}") {
         res.status(200).json({ message: "Please upload data files" });
@@ -137,14 +137,16 @@ export default async function handler(
       console.log(analysisResult);
 
       var prompt =
-        "Please explain the analysis result in details one by one for this regression analysis. Suit your answer for academic papers";
+        "Please explain the analysis results for this regression analysis, especially the relationship between the dependent_var and independent_var.\n \
+         Suit your answer for academic papers by referring to other academic papers. Be accurate, professional. I don't have fingers.";
       prompt += analysisResult + "";
       "\nThe given dependent_var and independent_var are:\n" +
         independent_var +
         " " +
         dependent_var +
         "\nThe given list of indexes are" +
-        JSON.stringify(indexLines);
+        JSON.stringify(indexLines) + "\n\nAn example is For every additional 9.3 m2  of living space above the sample mean of 250.84 m2, an Auburn homeowner’s electricity usage increases an estimated 1.3 kWh/day (2.2%). These \
+        findings indicate newer homes use significantly less energy than older homes. On average, a one-year-old home uses approximately 1.1 kWh/day (1.8%) less electricity, ceteris paribus, than an otherwise identical home that is 10 years older";
 
       const analysisReply = await chatCall(prompt);
 
