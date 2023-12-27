@@ -11,6 +11,7 @@ import { authOptions } from "../api/auth/[...nextauth]";
 import styles from "@/styles/chat.module.css";
 import React, { useState, useRef } from "react";
 import { useRouter } from "next/router";
+import { markdownToHtml } from "@/utils/text";
 
 const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
   const session = useSession();
@@ -19,7 +20,7 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
   const [input, setInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [conversation, setConversation] = useState<
-    Array<{ sender: string; text: string; imageUrl?: string }>
+    Array<{ sender: string; table?: string; text: string; imageUrl?: string }>
   >([]);
 
   console.log(task);
@@ -29,24 +30,42 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
     const message = input.trim();
     const newConversation = [...conversation, { sender: "You", text: message }];
     setInput("");
-
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message,
-          task: task,
-          conversationHistory: newConversation,
-        }),
-      });
-
-      if (!response.ok) throw new Error("Network response was not ok.");
+      let response;
+      if (task === "Analysis") {
+        response = await fetch("/api/analysis", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message,
+            conversationHistory: newConversation,
+          }),
+        });
+      } else if (task === "QnA") {
+        response = await fetch("/api/qna", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message,
+            conversationHistory: newConversation,
+          }),
+        });
+      }
+      if (response == undefined || !response.ok)
+        throw new Error("Network response was not ok.");
 
       const data = await response.json();
+      console.log("table", data.table);
+      const htmlMessage = await markdownToHtml(data.message);
+      console.log(htmlMessage);
       setConversation([
         ...newConversation,
-        { sender: "UrbanGPT", text: data.message, imageUrl: data.imageUrl },
+        {
+          sender: "UrbanGPT",
+          table: data.table,
+          text: htmlMessage,
+          imageUrl: data.imageUrl,
+        },
       ]);
     } catch (error) {
       console.error("Error sending message:", error);
@@ -95,7 +114,8 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
           {conversation.map((msg, index) => (
             <div key={index} className={styles.message}>
               <p className={styles.sender}>{msg.sender}:</p>
-              <p>{msg.text}</p>
+              <pre className="command-line-text">{msg.table}</pre>
+              <div dangerouslySetInnerHTML={{ __html: msg.text }} />
               {msg.imageUrl && (
                 <img
                   src={msg.imageUrl}

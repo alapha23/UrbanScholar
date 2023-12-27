@@ -23,6 +23,7 @@ const ChatPage: NextPage<ChatPageProps> = ({ userId }) => {
   const router = useRouter();
   const chatCreateMutation = trpc.useMutation("chat.create");
 
+  console.log(userId);
   const createChat = async (task: string) => {
     chatCreateMutation
       .mutateAsync({
