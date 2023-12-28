@@ -12,6 +12,7 @@ import styles from "@/styles/chat.module.css";
 import React, { useState, useRef } from "react";
 import { useRouter } from "next/router";
 import { markdownToHtml } from "@/utils/text";
+import { trpc } from "@/utils/trpc";
 
 const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
   const session = useSession();
@@ -22,17 +23,20 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
   const [conversation, setConversation] = useState<
     Array<{ sender: string; table?: string; text: string; imageUrl?: string }>
   >([]);
-
-  console.log(task);
+  const analysisMutation = trpc.useMutation("chat.analysis");
+  const qnaMutation = trpc.useMutation("chat.qna");
 
   const sendMessage = async () => {
     if (!input.trim()) return;
     const message = input.trim();
     const newConversation = [...conversation, { sender: "You", text: message }];
+
     setInput("");
+
     try {
       let response;
       if (task === "Analysis") {
+        /*
         response = await fetch("/api/analysis", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -40,8 +44,15 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
             message,
             conversationHistory: newConversation,
           }),
+        });*/
+        response = await analysisMutation.mutateAsync({
+          data: JSON.stringify({
+            message,
+            conversationHistory: newConversation,
+          }),
         });
       } else if (task === "QnA") {
+        /*
         response = await fetch("/api/qna", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -49,22 +60,31 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
             message,
             conversationHistory: newConversation,
           }),
+        });*/
+        response = await qnaMutation.mutateAsync({
+          data: JSON.stringify({
+            message,
+            conversationHistory: newConversation,
+          }),
         });
       }
-      if (response == undefined || !response.ok)
+      if (response == undefined)
         throw new Error("Network response was not ok.");
 
-      const data = await response.json();
-      console.log("table", data.table);
-      const htmlMessage = await markdownToHtml(data.message);
-      console.log(htmlMessage);
+      let htmlMessage;
+      if ("reply" in response) {
+        htmlMessage = await markdownToHtml(response.reply as string);
+      } else {
+        throw new Error("Failed to get a reply");
+      }
+
       setConversation([
         ...newConversation,
         {
           sender: "UrbanGPT",
-          table: data.table,
+          table: response?.table,
           text: htmlMessage,
-          imageUrl: data.imageUrl,
+          //imageUrl: none,
         },
       ]);
     } catch (error) {
