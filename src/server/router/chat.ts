@@ -122,8 +122,9 @@ export const chatRouter = createRouter()
       var dependent_var;
       // acquire independent variable
       var prompt =
-        'Seek the independent variable and the depedent variable. If there is either, then return in JSON format where there is a key called "error" \
-            if there are both, return in JSON format where independent_var, dependent_var are the keys. Allow fuzzy spelling';
+        'Seek the independent variables and the dependent variable. If there is either, then return in JSON format where there is a key called "error" \
+            if there are both, return in JSON format where independent_var, dependent_var are the keys. If there are multiple independent variables, then the values will be an array.\
+             Allow fuzzy spelling';
       prompt +=
         "\nThe chat history is:\n" + JSON.stringify(conversationHistory);
 
@@ -157,7 +158,8 @@ export const chatRouter = createRouter()
       var prompt =
         'Find the closest match between 1. the given dependent_var and independent_var and 2. the given list of indexes\
           if no close match is found, then return in JSON format with key "error" \
-          if matches for both dependent_var and independent_var are found, return in JSON format with dependent_var and independent_var as keys and their values as values';
+          if matches for both dependent_var and independent_var are found, return in JSON format with dependent_var and independent_var as keys and their values as values\
+          if the values of independent_var is an array, keep the array as the JSON value';
       prompt +=
         "\nThe given dependent_var and independent_var are:\n" +
         JSON.stringify(reply_json) +
@@ -179,7 +181,17 @@ export const chatRouter = createRouter()
       console.log(__dirname);
 
       // Construct the path to your Python script
-      const scriptPath = join(__dirname, "..", "..", "..", "script/ols.py");
+      let scriptPath;
+      let formattedIndependentVar;
+
+      if (Array.isArray(independent_var)) {
+        scriptPath = join(__dirname, "..", "..", "..", "script/ols_mul.py");
+        formattedIndependentVar = independent_var.join(',');
+      } else {
+        scriptPath = join(__dirname, "..", "..", "..", "script/ols.py");
+        formattedIndependentVar = independent_var;
+      }
+
       const csvPath = join(
         __dirname,
         "..",
@@ -193,7 +205,7 @@ export const chatRouter = createRouter()
       const analysisResult = await executeScript(
         scriptPath,
         csvPath,
-        independent_var,
+        formattedIndependentVar,
         dependent_var
       );
       console.log(analysisResult);
