@@ -117,9 +117,8 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
             //<div key={index} className={styles.message}>
             <div key={index} className={`${styles.message} ${msg.sender === 'You' ? styles.yourMessage : ''}`}>
               <p className={styles.sender}>{msg.sender}:</p>
+              {msg.table && <pre className={styles.commandLineText}>{msg.table}</pre>}
               <div className={styles.messageContent}>
-                {msg.table && <pre className={styles.commandLineText}>{msg.table}</pre>}
-                <pre className="command-line-text">{msg.table}</pre>
                 <div dangerouslySetInnerHTML={{ __html: msg.text }} />
                 {msg.imageUrl && (
                   <img
