@@ -103,6 +103,17 @@ export const chatRouter = createRouter()
     }),
     resolve: async ({ ctx: { prisma }, input }) => {
       const { message, conversationHistory } = JSON.parse(input.data);
+      let indexLines = await readCSV();
+      console.log(indexLines);
+
+      if (JSON.stringify(indexLines) === "{}") {
+        return { reply: "Please upload data files" };
+      } else if (!JSON.stringify(conversationHistory).includes("Existing Datasets have indexes as below,")) {
+        return {
+          reply: "Existing Datasets have indexes as below, to proceed with linear regression analysis,\
+         please tell me the independent variable name and dependent varible name\n" + JSON.stringify(indexLines)
+        };
+      }
 
       console.log(conversationHistory);
       // verify input csv integrity
@@ -120,33 +131,26 @@ export const chatRouter = createRouter()
       let reply_json = JSON.parse(reply);
       if ("error" in reply_json) {
         console.log(reply);
-        return { message: reply_json["error"] };
+        return { reply: reply_json["error"] };
       }
 
       // verify the name of the independent variable
       if (reply_json["independent_var"] == undefined) {
         console.log("Please specify the name of the independent variable");
         return {
-          message: "Please specify the name of the independent variable",
+          reply: "Please specify the name of the independent variable",
         };
       }
 
       // acquire dependent variable
       if (reply_json["dependent_var"] == undefined) {
         console.log("Please specify the name of the independent variable");
-        return { message: "Please specify the name of the dependent variable" };
+        return { reply: "Please specify the name of the dependent variable" };
       }
       console.log(reply_json);
 
       // verify the names acquired from chat against indexes in CSV
       console.log("verify the names acquired from chat against indexes in CSV");
-      let indexLines = await readCSV();
-      console.log(indexLines);
-
-      if (JSON.stringify(indexLines) === "{}") {
-        return { message: "Please upload data files" };
-      }
-
       const csvFileNames = Object.keys(indexLines);
       console.log(csvFileNames);
 
@@ -166,7 +170,7 @@ export const chatRouter = createRouter()
       dependent_var = verifyIndexJson["dependent_var"];
       if ("error" in verifyIndexJson) {
         console.log(reply);
-        return { message: reply_json["error"] };
+        return { reply: reply_json["error"] };
       }
 
       // Proceed to run analysis

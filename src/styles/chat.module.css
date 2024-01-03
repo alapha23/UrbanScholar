@@ -19,7 +19,29 @@
   padding: 10px;
   background-color: white;
   border-radius: 5px;
+  position: relative;
 }
+
+
+.yourMessage {
+    background-color: #e0f7fa; /* Light blue for sender */
+    text-align: right;
+}
+
+.sender {
+    font-weight: bold;
+}
+
+.timestamp {
+    font-size: 0.8em;
+    color: #888;
+}
+
+.messageContent {
+    max-height: 150px; /* Set a max height for each message */
+    overflow-y: auto; /* Scrollbar for long messages */
+}
+
 
 .message p {
   margin: 0 0 5px 0;

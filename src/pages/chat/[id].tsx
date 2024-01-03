@@ -21,7 +21,7 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
   const [input, setInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [conversation, setConversation] = useState<
-    Array<{ sender: string; table?: string; text: string; imageUrl?: string }>
+    Array<{ sender: string; table?: string; text: string; imageUrl?: string; }>
   >([]);
   const analysisMutation = trpc.useMutation("chat.analysis");
   const qnaMutation = trpc.useMutation("chat.qna");
@@ -36,15 +36,6 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
     try {
       let response;
       if (task === "Analysis") {
-        /*
-        response = await fetch("/api/analysis", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message,
-            conversationHistory: newConversation,
-          }),
-        });*/
         response = await analysisMutation.mutateAsync({
           data: JSON.stringify({
             message,
@@ -52,15 +43,6 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
           }),
         });
       } else if (task === "QnA") {
-        /*
-        response = await fetch("/api/qna", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message,
-            conversationHistory: newConversation,
-          }),
-        });*/
         response = await qnaMutation.mutateAsync({
           data: JSON.stringify({
             message,
@@ -132,17 +114,21 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
       <div className={styles.conversationContainer}>
         <div className={styles.chatBox}>
           {conversation.map((msg, index) => (
-            <div key={index} className={styles.message}>
+            //<div key={index} className={styles.message}>
+            <div key={index} className={`${styles.message} ${msg.sender === 'You' ? styles.yourMessage : ''}`}>
               <p className={styles.sender}>{msg.sender}:</p>
-              <pre className="command-line-text">{msg.table}</pre>
-              <div dangerouslySetInnerHTML={{ __html: msg.text }} />
-              {msg.imageUrl && (
-                <img
-                  src={msg.imageUrl}
-                  alt="Response"
-                  className={styles.image}
-                />
-              )}
+              <div className={styles.messageContent}>
+                {msg.table && <pre className={styles.commandLineText}>{msg.table}</pre>}
+                <pre className="command-line-text">{msg.table}</pre>
+                <div dangerouslySetInnerHTML={{ __html: msg.text }} />
+                {msg.imageUrl && (
+                  <img
+                    src={msg.imageUrl}
+                    alt="Response"
+                    className={styles.image}
+                  />
+                )}
+              </div>
             </div>
           ))}
         </div>
