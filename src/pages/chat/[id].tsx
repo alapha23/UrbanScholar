@@ -25,6 +25,7 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
   >([]);
   const analysisMutation = trpc.useMutation("chat.analysis");
   const qnaMutation = trpc.useMutation("chat.qna");
+  const reportMutation = trpc.useMutation("chat.report");
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -44,6 +45,13 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
         });
       } else if (task === "QnA") {
         response = await qnaMutation.mutateAsync({
+          data: JSON.stringify({
+            message,
+            conversationHistory: newConversation,
+          }),
+        });
+      } else if (task === "Report") {
+        response = await reportMutation.mutateAsync({
           data: JSON.stringify({
             message,
             conversationHistory: newConversation,

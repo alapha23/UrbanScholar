@@ -41,7 +41,8 @@ async function executeScript(
 }
 
 async function getMostRelevantArticleChunk(
-  question: string
+  question: string,
+  url: string
 ): Promise<string[]> {
   console.log("Trying to get the most relevant article chunk");
   let data = JSON.stringify({
@@ -52,7 +53,7 @@ async function getMostRelevantArticleChunk(
   let config = {
     method: "post",
     maxBodyLength: Infinity,
-    url: process.env.EMBEDDING_SERVER_URL + "/search",
+    url: url,
     headers: {
       "Content-Type": "application/json",
     },
@@ -237,9 +238,28 @@ export const chatRouter = createRouter()
     }),
     resolve: async ({ ctx: { prisma }, input }) => {
       const { message, conversationHistory } = JSON.parse(input.data);
-      const context = await getMostRelevantArticleChunk(message);
+      const context = await getMostRelevantArticleChunk(message, process.env.EMBEDDING_SERVER_URL + "/search");
       context.push(conversationHistory);
       console.log("context", context);
+      const response = await chatCallWithContext(
+        message,
+        JSON.stringify(context)
+      );
+      return { reply: response };
+    },
+  })
+  .mutation("report", {
+    input: z.object({
+      data: z.string(),
+    }),
+    resolve: async ({ ctx: { prisma }, input }) => {
+      const { message, conversationHistory } = JSON.parse(input.data);
+      const context = await getMostRelevantArticleChunk(message, process.env.REPORT_SERVER_URL + "/search");
+      context.push(conversationHistory);
+      console.log("context", context);
+      const prompt = "Genenerate a report for policy makers, follow formats used in urban planning policy documents\
+      Use academic and accurate langauge, include evidences included in the context\
+      Perfect your answer of each section of the policy document you write. Send me multipart answers in the following messages";
       const response = await chatCallWithContext(
         message,
         JSON.stringify(context)
