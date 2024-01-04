@@ -19,7 +19,7 @@ app = Flask(__name__)
 load_dotenv()
 
 CACHE_DIR = '.cache'
-
+num_processes = 8 
 
 openai.api_key = os.getenv('OPENAI_KEY')
 
@@ -143,15 +143,16 @@ def summarize_text(text, max_retry=10, retry_delay=10):
     for _ in range(max_retry):
         try:
             # Using the ChatCompletion endpoint of the OpenAI API to get a summary
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+            response = openai.chat.completions.create(
+                model="gpt-3.5-turbo-1106",
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant. You summarize academic article chunks professionally, accurately"},
                     {"role": "user", "content": "Summarize the following text, note down important evidences: "+text}
                 ],
                 max_tokens=500
             )            
-            return response.choices[0].message['content'].strip()        
+            return response.choices[0].message.content.strip()
+            #return response["choices"][0]['message']['content'].strip()        
         except Exception as e:
             print(f"API Error: {e}")
             print("Retrying...")
@@ -232,7 +233,7 @@ def init_summary():
                     idx += 1
 
 
-    with Pool() as pool:
+    with Pool(processes=num_processes) as pool:
         # Use imap_unordered to get results as soon as they are ready
         # This will not guarantee order, but we get results faster
         for (unique_id, summary) in pool.imap_unordered(parallel_summarize, chunks):
