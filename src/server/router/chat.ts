@@ -258,7 +258,7 @@ export const chatRouter = createRouter()
       context.push(conversationHistory);
       console.log("context", context);
       const prompt = "Genenerate a report for potential policy makers, mimic formats used in urban planning policy documents\
-      Use academic and accurate langauge, include evidences included in the context\
+      Use academic and accurate langauge, and refer to evidences included in the context if necessary\
       Perfect your answer of each section of the policy document you write. \
       Send the answers section by section. I expect multipart answers in the following messages\n\n";
       const response = await chatCallWithContext(
