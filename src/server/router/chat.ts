@@ -254,12 +254,13 @@ export const chatRouter = createRouter()
     }),
     resolve: async ({ ctx: { prisma }, input }) => {
       const { message, conversationHistory } = JSON.parse(input.data);
-      const context = await getMostRelevantArticleChunk(message, process.env.REPORT_SERVER_URL + "/search");
+      const context = await getMostRelevantArticleChunk(message + conversationHistory, process.env.REPORT_SERVER_URL + "/search");
       context.push(conversationHistory);
       console.log("context", context);
       const prompt = "Genenerate a report for potential policy makers, mimic formats used in urban planning policy documents\
       Use academic and accurate langauge, include evidences included in the context\
-      Perfect your answer of each section of the policy document you write. Send me multipart answers in the following messages\n\n";
+      Perfect your answer of each section of the policy document you write. \
+      Send the answers section by section. I expect multipart answers in the following messages\n\n";
       const response = await chatCallWithContext(
         prompt + message,
         JSON.stringify(context)
