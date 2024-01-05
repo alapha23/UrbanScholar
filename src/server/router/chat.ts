@@ -157,6 +157,7 @@ export const chatRouter = createRouter()
           reply: "Please specify the name of the independent variable",
         };
       }
+      independent_var = reply_json['independent_var'];
 
       // acquire dependent variable
       prompt =
@@ -173,6 +174,7 @@ export const chatRouter = createRouter()
         console.log("Please specify the name of the dependent variable");
         return { reply: "Please specify the name of the dependent variable" };
       }
+      dependent_var = reply_json['dependent_var'];
       console.log(reply_json);
 
       // verify the names acquired from chat against indexes in CSV
