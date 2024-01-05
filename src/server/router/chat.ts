@@ -187,7 +187,7 @@ export const chatRouter = createRouter()
           if the values of independent_var is an array, keep the array as the JSON value';
       prompt +=
         "\nThe given dependent_var and independent_var are:\n" +
-        JSON.stringify(reply_json) +
+        dependent_var + ", " + independent_var +
         "\nThe given list of indexes are" +
         JSON.stringify(indexLines);
 
