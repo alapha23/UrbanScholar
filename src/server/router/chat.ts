@@ -135,8 +135,9 @@ export const chatRouter = createRouter()
       var independent_var;
       var dependent_var;
       prompt =
-        'Seek the independent variables and the dependent variable. If there is either, then return in JSON format where there is a key called "error" \
-            if there are both, return in JSON format where independent_var, dependent_var are the keys. If there are multiple independent variables, then the values will be an array.\
+        'Seek the independent variables chosen by the user. If none is chosen, then return in JSON format where there is a key called "error" \
+            if one or more is chosen, return in JSON format where independent_var is the key. \
+            If there are multiple independent variables, then the values will be a string array of the chosen dependent variables.\
              Allow fuzzy spelling';
       prompt +=
         "\nThe chat history is:\n" + JSON.stringify(conversationHistory);
@@ -149,8 +150,8 @@ export const chatRouter = createRouter()
         return { reply: reply_json["error"] };
       }
 
-      // 3. verify the name of the independent variable
-      if (reply_json["independent_var"] == undefined) {
+      // verify the name of the independent variable
+      if (reply_json["independent_var"] === undefined) {
         console.log("Please specify the name of the independent variable");
         return {
           reply: "Please specify the name of the independent variable",
@@ -158,8 +159,18 @@ export const chatRouter = createRouter()
       }
 
       // acquire dependent variable
-      if (reply_json["dependent_var"] == undefined) {
-        console.log("Please specify the name of the independent variable");
+      prompt =
+        'Seek the dependent variable chosen by the user. None is chosen, then return in JSON format where there is a key called "error" \
+            if one dependent variable is chosen, return in JSON format where dependent_var is the key, while the string of the chosen dependent_var is the value\
+             Allow fuzzy spelling';
+      prompt +=
+        "\nThe chat history is:\n" + JSON.stringify(conversationHistory);
+
+      reply = await chatCallJsonMode(prompt + message, "");
+      reply_json = JSON.parse(reply);
+
+      if (reply_json["dependent_var"] === undefined) {
+        console.log("Please specify the name of the dependent variable");
         return { reply: "Please specify the name of the dependent variable" };
       }
       console.log(reply_json);
