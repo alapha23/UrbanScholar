@@ -125,8 +125,9 @@ export const chatRouter = createRouter()
 
       if (reply_json['answer'] === "Yes") {
         return {
-          reply: "Existing Datasets have indexes as below, to proceed with linear regression analysis,\
-         please tell me the independent variable name and dependent varible name\n" + JSON.stringify(indexLines)
+          reply: "Existing indexes:" + JSON.stringify(indexLines) +
+            " To proceed with linear regression analysis,\
+          please inform me the independent variables and dependent variables\n"
         };
       }
 
