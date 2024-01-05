@@ -31,6 +31,8 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
     if (!input.trim()) return;
     const message = input.trim();
     const newConversation = [...conversation, { sender: "You", text: message }];
+    setConversation([
+      ...newConversation,]);
 
     setInput("");
 
