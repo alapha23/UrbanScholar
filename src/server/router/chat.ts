@@ -193,13 +193,13 @@ export const chatRouter = createRouter()
 
       const verifyIndexReply = await chatCallJsonMode(prompt, "");
       let verifyIndexJson = JSON.parse(verifyIndexReply);
+      console.log(verifyIndexJson);
       independent_var = verifyIndexJson["independent_var"];
       dependent_var = verifyIndexJson["dependent_var"];
       if ("error" in verifyIndexJson) {
         console.log(reply);
         return { reply: reply_json["error"] };
       }
-      console.log(verifyIndexJson);
 
       // Proceed to run analysis
       // Use the function to get the current directory
