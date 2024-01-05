@@ -179,6 +179,7 @@ export const chatRouter = createRouter()
       console.log("verify the names acquired from chat against indexes in CSV");
       const csvFileNames = Object.keys(indexLines);
       console.log(csvFileNames);
+      console.log(indexLines);
 
       var prompt =
         'Find the closest match between 1. the given dependent_var and independent_var and 2. the given list of indexes\
@@ -196,8 +197,8 @@ export const chatRouter = createRouter()
       console.log(verifyIndexJson);
       independent_var = verifyIndexJson["independent_var"];
       dependent_var = verifyIndexJson["dependent_var"];
-      if ("error" in verifyIndexJson) {
-        console.log(reply);
+      if ("error" in Object.keys(verifyIndexJson)) {
+        console.log(verifyIndexReply);
         return { reply: reply_json["error"] };
       }
 
