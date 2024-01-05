@@ -106,37 +106,49 @@ export const chatRouter = createRouter()
       const { message, conversationHistory } = JSON.parse(input.data);
       let indexLines = await readCSV();
       console.log(indexLines);
+      console.log(conversationHistory);
 
+      // 0. verify input csv integrity
       if (JSON.stringify(indexLines) === "{}") {
         return { reply: "Please upload data files" };
-      } else if (!JSON.stringify(conversationHistory).includes("Existing Datasets have indexes as below,")) {
+      }
+
+      // 1. is the user asking for all indexes?
+      var prompt =
+        'Is the user asking for all indexes? Key of Json is "answer", value is "Yes" or "No"\
+             Allow fuzzy spelling';
+      prompt +=
+        "\nUser:" + message;
+
+      var reply = await chatCallJsonMode(prompt, "");
+      let reply_json = JSON.parse(reply);
+
+      if (reply_json['answer'] === "Yes") {
         return {
           reply: "Existing Datasets have indexes as below, to proceed with linear regression analysis,\
          please tell me the independent variable name and dependent varible name\n" + JSON.stringify(indexLines)
         };
       }
 
-      console.log(conversationHistory);
-      // verify input csv integrity
-
+      // 2. acquire independent variable
       var independent_var;
       var dependent_var;
-      // acquire independent variable
-      var prompt =
+      prompt =
         'Seek the independent variables and the dependent variable. If there is either, then return in JSON format where there is a key called "error" \
             if there are both, return in JSON format where independent_var, dependent_var are the keys. If there are multiple independent variables, then the values will be an array.\
              Allow fuzzy spelling';
       prompt +=
         "\nThe chat history is:\n" + JSON.stringify(conversationHistory);
 
-      const reply = await chatCallJsonMode(prompt + message, "");
-      let reply_json = JSON.parse(reply);
+      reply = await chatCallJsonMode(prompt + message, "");
+      reply_json = JSON.parse(reply);
+      console.log(reply_json);
       if ("error" in reply_json) {
         console.log(reply);
         return { reply: reply_json["error"] };
       }
 
-      // verify the name of the independent variable
+      // 3. verify the name of the independent variable
       if (reply_json["independent_var"] == undefined) {
         console.log("Please specify the name of the independent variable");
         return {
