@@ -57,8 +57,9 @@ export async function chatCallWithContext(prompt: string, context: string): Prom
         messages.push({ role: "user", content: prompt });
 
         const response: OpenAI.Chat.ChatCompletion = await openai.chat.completions.create({
-            model: "gpt-4-1106-preview",
+            model: "gpt-4-0613",
             messages: messages,
+            max_tokens: 4000,
             //tools: tools
         });
         const responseText = response.choices[0].message?.content;
@@ -78,8 +79,9 @@ export async function chatCall(prompt: string): Promise<string> {
         messages.push({ role: "user", content: prompt });
 
         const response: OpenAI.Chat.ChatCompletion = await openai.chat.completions.create({
-            model: "gpt-4-1106-preview",
+            model: "gpt-4-0613",
             messages: messages,
+            max_tokens: 4000,
             //tools: tools
         });
         const responseText = response.choices[0].message?.content;
