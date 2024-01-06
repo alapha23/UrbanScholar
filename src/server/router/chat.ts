@@ -277,8 +277,19 @@ export const chatRouter = createRouter()
         JSON.stringify(contexts)
       );
       let replyMessage = response + "\n\n**References**\n\n\n";
+
+      // Create a set to store unique references
+      const uniqueReferences = new Set<string>();
+
+      // Add each reference to the set, ensuring uniqueness
       for (const c of context) {
-        replyMessage += c.replace(/U\.S\./g, "US").split(".")[0] + "\n\n";
+        const reference: string = c.replace(/U\.S\./g, "US").split(".")[0] as string;
+        uniqueReferences.add(reference);
+      }
+
+      // Iterate over the set to build replyMessage
+      for (const reference in uniqueReferences) {
+        replyMessage += reference + "\n\n";
       }
       return { reply: replyMessage };
     },
