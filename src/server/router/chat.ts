@@ -289,9 +289,10 @@ export const chatRouter = createRouter()
       }
 
       // Iterate over the set to build replyMessage
-      for (const reference in uniqueReferences) {
+      uniqueReferences.forEach(reference => {
         replyMessage += reference + "\n\n";
-      }
+      });
+
       return { reply: replyMessage };
     },
   })
