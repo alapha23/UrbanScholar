@@ -24,7 +24,7 @@ export async function chatCallJsonMode(prompt: string, context: string): Promise
 
         return responseText as string;
     } catch (error) {
-        console.log(error)
+        console.log(error);
     }
     return '';
 }
@@ -43,7 +43,7 @@ export async function chatCallWithTool(prompt: string, tools: any): Promise<stri
         console.log(finalContent);
         return finalContent as string;
     } catch (error) {
-        console.log(error)
+        console.log(error);
     }
     return '';
 }
@@ -51,6 +51,7 @@ export async function chatCallWithTool(prompt: string, tools: any): Promise<stri
 export async function chatCallWithContext(prompt: string, context: string): Promise<string> {
     try {
         const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+            { role: "system", content: "You are a helpful academic agent, you assist requests regarding urban planning in professional, academic, accurate ways" },
             { role: "system", content: context }
         ];
         messages.push({ role: "user", content: prompt });
@@ -64,7 +65,7 @@ export async function chatCallWithContext(prompt: string, context: string): Prom
 
         return responseText as string;
     } catch (error) {
-        console.log(error)
+        console.log(error);
     }
     return '';
 }
@@ -85,7 +86,7 @@ export async function chatCall(prompt: string): Promise<string> {
 
         return responseText as string;
     } catch (error) {
-        console.log(error)
+        console.log(error);
     }
     return '';
 }
