@@ -284,6 +284,7 @@ export const chatRouter = createRouter()
       // Add each reference to the set, ensuring uniqueness
       for (const c of context) {
         const reference: string = c.replace(/U\.S\./g, "US").split(".")[0] as string;
+        console.log('add ref', reference);
         uniqueReferences.add(reference);
       }
 
