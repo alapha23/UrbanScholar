@@ -276,7 +276,7 @@ export const chatRouter = createRouter()
         message,
         JSON.stringify(contexts)
       );
-      let replyMessage = response + "\n**References**\n\n";
+      let replyMessage = response + "\n\n### References\n\n\n";
       for (const c of context) {
         replyMessage += c.replace(/U\.S\./g, "US").split(".")[0] + "\n\n";
       }
