@@ -16,7 +16,7 @@ export async function chatCallJsonMode(prompt: string, context: string): Promise
         messages.push({ role: "user", content: prompt });
 
         const response: OpenAI.Chat.ChatCompletion = await openai.chat.completions.create({
-            model: "gpt-4-1106-preview",
+            model: "gpt-4-0613",
             messages: messages,
             response_format: { type: "json_object" },
         });
