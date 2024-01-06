@@ -273,7 +273,11 @@ export const chatRouter = createRouter()
         message,
         JSON.stringify(context)
       );
-      return { reply: response };
+      let replyMessage = response + "\nReferences:\n";
+      for (const c of context) {
+        replyMessage += (c.replace(/U\.S\./g, "US").split(".")[0] + "\n");
+      }
+      return { reply: replyMessage };
     },
   })
   .mutation("report", {
