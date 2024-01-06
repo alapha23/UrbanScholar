@@ -267,15 +267,18 @@ export const chatRouter = createRouter()
     resolve: async ({ ctx: { prisma }, input }) => {
       const { message, conversationHistory } = JSON.parse(input.data);
       const context = await getMostRelevantArticleChunk(message, process.env.EMBEDDING_SERVER_URL + "/search");
-      context.push(conversationHistory);
-      console.log("context", context);
+      // deep copy
+      const contexts = JSON.parse(JSON.stringify(context));
+
+      contexts.push(conversationHistory);
+      console.log("contexts", contexts);
       const response = await chatCallWithContext(
         message,
-        JSON.stringify(context)
+        JSON.stringify(contexts)
       );
       let replyMessage = response + "\nReferences:\n";
       for (const c of context) {
-        replyMessage += (c.replace(/U\.S\./g, "US").split(".")[0] + "\n");
+        replyMessage += c.replace(/U\.S\./g, "US").split(".")[0] + "\n";
       }
       return { reply: replyMessage };
     },
