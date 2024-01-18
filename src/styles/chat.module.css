@@ -22,26 +22,24 @@
   position: relative;
 }
 
-
 .yourMessage {
-    background-color: #e0f7fa; /* Light blue for sender */
-    text-align: right;
+  background-color: #e0f7fa; /* Light blue for sender */
+  text-align: right;
 }
 
 .sender {
-    font-weight: bold;
+  font-weight: bold;
 }
 
 .timestamp {
-    font-size: 0.8em;
-    color: #888;
+  font-size: 0.8em;
+  color: #888;
 }
 
 .messageContent {
-    max-height: 150px; /* Set a max height for each message */
-    overflow-y: auto; /* Scrollbar for long messages */
+  /* Removed max-height and overflow-y */
+  word-wrap: break-word; /* Ensures text wraps inside the container */
 }
-
 
 .message p {
   margin: 0 0 5px 0;
