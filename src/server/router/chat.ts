@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { createRouter } from "./context";
 
-import { readCSV } from "@/utils/helper";
+import { readCSV, Message } from "@/utils/helper";
 import { exec } from "child_process";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -14,6 +14,7 @@ import {
   chatCallJsonMode,
   chatCallWithContext,
 } from "@/utils/openai";
+import { Chat, PrismaClient } from "@prisma/client";
 
 const getCurrentDirname = (metaUrl: string) => {
   const __filename = fileURLToPath(metaUrl);
@@ -38,6 +39,30 @@ async function executeScript(
       }
     );
   });
+}
+
+async function updateContentDB(
+  prisma: PrismaClient,
+  chatId: string,
+  conversationHistory: any[],
+  message: string
+): Promise<Chat> {
+  conversationHistory.push({
+    sender: "UrbanGPT",
+    text: message,
+  });
+
+  const updatedContent = JSON.stringify(conversationHistory);
+  const updatedChat = await prisma.chat.update({
+    where: {
+      id: chatId,
+    },
+    data: {
+      content: updatedContent,
+      updatedAt: new Date(),
+    },
+  });
+  return updatedChat;
 }
 
 async function getMostRelevantArticleChunk(
@@ -87,7 +112,7 @@ export const chatRouter = createRouter()
         data: {
           userId: input.userId,
           title: "New Chat",
-          content: "",
+          content: "[]",
         },
         select: {
           id: true,
@@ -103,35 +128,80 @@ export const chatRouter = createRouter()
       data: z.string(),
     }),
     resolve: async ({ ctx: { prisma }, input }) => {
-      const { message, conversationHistory } = JSON.parse(input.data);
+      const { message, conversationHistory, chatId } = JSON.parse(input.data);
       let indexLines = await readCSV();
       console.log(indexLines);
       console.log(conversationHistory);
 
-      // 0. verify input csv integrity
-      if (JSON.stringify(indexLines) === "{}") {
-        return { reply: "Please upload data files" };
+      // 0. Verify DB see if conversation is updated
+      // In case the conversation has been updated in the DB through another browser
+      const chat = await prisma.chat.findUnique({
+        where: {
+          id: chatId,
+        },
+        select: {
+          content: true,
+        },
+      });
+
+      if (!chat) {
+        throw new Error("Chat not found");
       }
 
-      // 1. is the user asking for all indexes?
+      // Parse the content from the database
+      let currentDbContent;
+      try {
+        currentDbContent = JSON.parse(chat.content);
+      } catch (error) {
+        console.error("Error parsing JSON from DB:", error);
+        throw new Error("Failed to parse chat content from the database");
+      }
+
+      // Compare the conversation history with DB content
+      let clientHistoryWithoutLastMessage = conversationHistory.slice(0, -1);
+      if (currentDbContent.length !== clientHistoryWithoutLastMessage.length) {
+        return {
+          reply:
+            "The conversation history has been updated. Please refresh the page",
+        };
+      }
+      // 1. Add new message to DB
+      await updateContentDB(
+        prisma,
+        chatId,
+        clientHistoryWithoutLastMessage,
+        message
+      );
+
+      // 2. verify input csv integrity
+      if (JSON.stringify(indexLines) === "{}") {
+        let reply = "Please upload data files";
+        await updateContentDB(prisma, chatId, conversationHistory, reply);
+
+        return { reply: reply };
+      }
+
+      // 3. is the user asking for all indexes?
       var prompt =
-        'Is the user asking for all indexes? Key of Json is "answer", value is "Yes" or "No"\
+        'Is the user asking for all indexes or variables? Key of Json is "answer", value is "Yes" or "No"\
              Allow fuzzy spelling';
-      prompt +=
-        "\nUser:" + message;
+      prompt += "\nUser:" + message;
 
       var reply = await chatCallJsonMode(prompt, "");
       let reply_json = JSON.parse(reply);
 
-      if (reply_json['answer'] === "Yes") {
-        return {
-          reply: "Existing indexes:" + JSON.stringify(indexLines) +
-            " To proceed with linear regression analysis,\
-          please inform me the independent variables and dependent variables\n"
-        };
+      if (reply_json["answer"] === "Yes") {
+        let reply =
+          "Existing indexes:" +
+          JSON.stringify(indexLines) +
+          " To proceed with linear regression analysis,\
+          please inform me the independent variables and dependent variables\n";
+
+        await updateContentDB(prisma, chatId, conversationHistory, reply);
+        return { reply: reply };
       }
 
-      // 2. acquire independent variable
+      // 4. acquire independent variable
       var independent_var;
       var dependent_var;
       prompt =
@@ -146,20 +216,22 @@ export const chatRouter = createRouter()
       reply_json = JSON.parse(reply);
       console.log(reply_json);
       if ("error" in reply_json) {
-        console.log(reply);
-        return { reply: reply_json["error"] };
+        let reply = reply_json["error"];
+
+        await updateContentDB(prisma, chatId, conversationHistory, reply);
+        return { reply: reply };
       }
 
-      // verify the name of the independent variable
+      // 5. verify the name of the independent variable
       if (reply_json["independent_var"] === undefined) {
-        console.log("Please specify the name of the independent variable");
-        return {
-          reply: "Please specify the name of the independent variable",
-        };
-      }
-      independent_var = reply_json['independent_var'];
+        let reply = "Please specify the name of the independent variable";
 
-      // acquire dependent variable
+        await updateContentDB(prisma, chatId, conversationHistory, reply);
+        return { reply: reply };
+      }
+      independent_var = reply_json["independent_var"];
+
+      // 6. acquire dependent variable
       prompt =
         'Seek the dependent variable chosen by the user. None is chosen, then return in JSON format where there is a key called "error" \
             if one dependent variable is chosen, return in JSON format where dependent_var is the key, while the string of the chosen dependent_var is the value\
@@ -171,13 +243,15 @@ export const chatRouter = createRouter()
       reply_json = JSON.parse(reply);
 
       if (reply_json["dependent_var"] === undefined) {
-        console.log("Please specify the name of the dependent variable");
-        return { reply: "Please specify the name of the dependent variable" };
+        let reply = "Please specify the name of the dependent variable";
+
+        await updateContentDB(prisma, chatId, conversationHistory, reply);
+        return { reply: reply };
       }
-      dependent_var = reply_json['dependent_var'];
+      dependent_var = reply_json["dependent_var"];
       console.log(reply_json);
 
-      // verify the names acquired from chat against indexes in CSV
+      // 7. verify the names acquired from chat against indexes in CSV
       console.log("verify the names acquired from chat against indexes in CSV");
       const csvFileNames = Object.keys(indexLines);
       console.log(csvFileNames);
@@ -190,7 +264,10 @@ export const chatRouter = createRouter()
           if the values of independent_var is an array, keep the array as the JSON value';
       prompt +=
         "\nThe given dependent_var and independent_var are:\n" +
-        "dependent_var:" + dependent_var + ", independent_var:" + independent_var +
+        "dependent_var:" +
+        dependent_var +
+        ", independent_var:" +
+        independent_var +
         "\nThe given list of indexes are" +
         JSON.stringify(indexLines);
 
@@ -200,11 +277,13 @@ export const chatRouter = createRouter()
       independent_var = verifyIndexJson["independent_var"];
       dependent_var = verifyIndexJson["dependent_var"];
       if ("error" in Object.keys(verifyIndexJson)) {
-        console.log(verifyIndexReply);
-        return { reply: reply_json["error"] };
+        let reply = reply_json["error"];
+
+        await updateContentDB(prisma, chatId, conversationHistory, reply);
+        return { reply: reply };
       }
 
-      // Proceed to run analysis
+      // 8. Proceed to run analysis
       // Use the function to get the current directory
       const __dirname = getCurrentDirname(import.meta.url);
       console.log(__dirname);
@@ -215,7 +294,7 @@ export const chatRouter = createRouter()
 
       if (Array.isArray(independent_var)) {
         scriptPath = join(__dirname, "..", "..", "..", "script/ols_mul.py");
-        formattedIndependentVar = independent_var.join(',');
+        formattedIndependentVar = independent_var.join(",");
       } else {
         scriptPath = join(__dirname, "..", "..", "..", "script/ols.py");
         formattedIndependentVar = independent_var;
@@ -256,6 +335,10 @@ export const chatRouter = createRouter()
             ";
 
       const analysisReply = await chatCall(prompt);
+
+      // 9. save analysis to DB
+      await updateContentDB(prisma, chatId, conversationHistory, analysisReply);
+
       console.log(analysisReply);
       return { table: analysisResult, reply: analysisReply };
     },
@@ -266,7 +349,10 @@ export const chatRouter = createRouter()
     }),
     resolve: async ({ ctx: { prisma }, input }) => {
       const { message, conversationHistory } = JSON.parse(input.data);
-      const context = await getMostRelevantArticleChunk(message, process.env.EMBEDDING_SERVER_URL + "/search");
+      const context = await getMostRelevantArticleChunk(
+        message,
+        process.env.EMBEDDING_SERVER_URL + "/search"
+      );
       // deep copy
       const contexts = JSON.parse(JSON.stringify(context));
 
@@ -283,13 +369,15 @@ export const chatRouter = createRouter()
 
       // Add each reference to the set, ensuring uniqueness
       for (const c of context) {
-        const reference: string = c.replace(/U\.S\./g, "US").split(".")[0] as string;
-        console.log('add ref', reference);
+        const reference: string = c
+          .replace(/U\.S\./g, "US")
+          .split(".")[0] as string;
+        console.log("add ref", reference);
         uniqueReferences.add(reference);
       }
 
       // Iterate over the set to build replyMessage
-      uniqueReferences.forEach(reference => {
+      uniqueReferences.forEach((reference) => {
         replyMessage += reference + "\n\n";
       });
 
@@ -302,10 +390,14 @@ export const chatRouter = createRouter()
     }),
     resolve: async ({ ctx: { prisma }, input }) => {
       const { message, conversationHistory } = JSON.parse(input.data);
-      const context = await getMostRelevantArticleChunk(message + conversationHistory, process.env.REPORT_SERVER_URL + "/search");
+      const context = await getMostRelevantArticleChunk(
+        message + conversationHistory,
+        process.env.REPORT_SERVER_URL + "/search"
+      );
       context.push(conversationHistory);
       console.log("context", context);
-      const prompt = "Genenerate a report for potential policy makers, mimic formats used in urban planning policy documents\
+      const prompt =
+        "Genenerate a report for potential policy makers, mimic formats used in urban planning policy documents\
       Use academic and accurate langauge, and refer to evidences included in the context if necessary\
       Perfect your answer of each section of the policy document you write. \
       Send the answers section by section. I expect multipart answers in the following messages\n\n";
