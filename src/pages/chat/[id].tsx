@@ -9,7 +9,7 @@ import Navbar from "@/components/Layout/Navbar";
 import { prisma } from "@/server/db/client";
 import { authOptions } from "../api/auth/[...nextauth]";
 import styles from "@/styles/chat.module.css";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/router";
 import { markdownToHtml } from "@/utils/text";
 import { trpc } from "@/utils/trpc";
@@ -17,22 +17,40 @@ import { trpc } from "@/utils/trpc";
 const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
   const session = useSession();
   const router = useRouter();
-  const { task } = router.query;
+  const { task, chatId } = router.query;
   const [input, setInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [conversation, setConversation] = useState<
-    Array<{ sender: string; table?: string; text: string; imageUrl?: string; }>
+    Array<{ sender: string; table?: string; text: string; imageUrl?: string }>
   >([]);
   const analysisMutation = trpc.useMutation("chat.analysis");
   const qnaMutation = trpc.useMutation("chat.qna");
   const reportMutation = trpc.useMutation("chat.report");
 
+  useEffect(() => {
+    console.log(chat);
+
+    if (chat != null) {
+      // restore chat
+      if (chat && chat.content) {
+        try {
+          // Parse the JSON string in chat.content
+          const restoredConversation = JSON.parse(chat.content);
+          setConversation(restoredConversation);
+        } catch (error) {
+          console.error("Error parsing chat content:", error);
+          // Handle parsing error (e.g., show a notification to the user)
+        }
+      }
+    }
+  }, [chat]);
+
   const sendMessage = async () => {
     if (!input.trim()) return;
+
     const message = input.trim();
     const newConversation = [...conversation, { sender: "You", text: message }];
-    setConversation([
-      ...newConversation,]);
+    setConversation([...newConversation]);
 
     setInput("");
 
@@ -43,6 +61,7 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
           data: JSON.stringify({
             message,
             conversationHistory: newConversation,
+            chatId: chatId,
           }),
         });
       } else if (task === "QnA") {
@@ -50,6 +69,7 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
           data: JSON.stringify({
             message,
             conversationHistory: newConversation,
+            chatId: chatId,
           }),
         });
       } else if (task === "Report") {
@@ -57,6 +77,7 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
           data: JSON.stringify({
             message,
             conversationHistory: newConversation,
+            chatId: chatId,
           }),
         });
       }
@@ -125,9 +146,16 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
         <div className={styles.chatBox}>
           {conversation.map((msg, index) => (
             //<div key={index} className={styles.message}>
-            <div key={index} className={`${styles.message} ${msg.sender === 'You' ? styles.yourMessage : ''}`}>
+            <div
+              key={index}
+              className={`${styles.message} ${
+                msg.sender === "You" ? styles.yourMessage : ""
+              }`}
+            >
               <p className={styles.sender}>{msg.sender}:</p>
-              {msg.table && <pre className={styles.commandLineText}>{msg.table}</pre>}
+              {msg.table && (
+                <pre className={styles.commandLineText}>{msg.table}</pre>
+              )}
               <div className={styles.messageContent}>
                 <div dangerouslySetInnerHTML={{ __html: msg.text }} />
                 {msg.imageUrl && (
@@ -180,14 +208,14 @@ export const getServerSideProps = async ({
   res,
 }: GetServerSidePropsContext) => {
   try {
-    const userId = params?.id as string;
+    const urlId = params?.id as string;
 
     const session = (await getServerSession(req, res, authOptions)) as any;
 
     const [chat] = await Promise.all([
       prisma.chat
         .findFirst({
-          where: { userId: userId },
+          where: { id: urlId },
           select: {
             id: true,
             title: true,
@@ -200,19 +228,8 @@ export const getServerSideProps = async ({
             return foundChat;
           }
 
-          // If no chat is found, create a new one
-          return prisma.chat.create({
-            data: {
-              userId: userId,
-              title: "New Chat",
-              content: "",
-            },
-            select: {
-              id: true,
-              title: true,
-              content: true,
-            },
-          });
+          // If no chat is found
+          return null;
         }),
     ]);
 

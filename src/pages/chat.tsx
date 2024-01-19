@@ -31,7 +31,10 @@ const ChatPage: NextPage<ChatPageProps> = ({ userId }) => {
       })
       .then((chatId) => {
         router
-          .push({ pathname: `/chat/${chatId}`, query: { task: task } })
+          .push({
+            pathname: `/chat/${chatId}`,
+            query: { task: task, chatId: chatId },
+          })
           .then(() => {
             console.log(chatId);
           });
