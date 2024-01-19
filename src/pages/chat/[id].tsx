@@ -9,7 +9,7 @@ import Navbar from "@/components/Layout/Navbar";
 import { prisma } from "@/server/db/client";
 import { authOptions } from "../api/auth/[...nextauth]";
 import styles from "@/styles/chat.module.css";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/router";
 import { markdownToHtml } from "@/utils/text";
 import { trpc } from "@/utils/trpc";
@@ -26,6 +26,24 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
   const analysisMutation = trpc.useMutation("chat.analysis");
   const qnaMutation = trpc.useMutation("chat.qna");
   const reportMutation = trpc.useMutation("chat.report");
+
+  useEffect(() => {
+    console.log(chat);
+
+    if (chat != null) {
+      // restore chat
+      if (chat && chat.content) {
+        try {
+          // Parse the JSON string in chat.content
+          const restoredConversation = JSON.parse(chat.content);
+          setConversation(restoredConversation);
+        } catch (error) {
+          console.error("Error parsing chat content:", error);
+          // Handle parsing error (e.g., show a notification to the user)
+        }
+      }
+    }
+  }, [chat]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -211,7 +229,7 @@ export const getServerSideProps = async ({
           }
 
           // If no chat is found
-          throw new Error("Chat not found");
+          return null;
         }),
     ]);
 
