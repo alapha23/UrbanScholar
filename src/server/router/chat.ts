@@ -65,6 +65,52 @@ async function updateContentDB(
   return updatedChat;
 }
 
+async function validateConversation(
+  prisma: PrismaClient,
+  chatId: string,
+  conversationHistory: any[],
+  message: string
+) {
+  console.log("chatid", chatId);
+  // In case the conversation has been updated in the DB through another browser
+  const chat = await prisma.chat.findUnique({
+    where: {
+      id: chatId,
+    },
+    select: {
+      content: true,
+    },
+  });
+
+  if (!chat) {
+    throw new Error("Chat not found");
+  }
+
+  // Parse the content from the database
+  let currentDbContent;
+  try {
+    currentDbContent = JSON.parse(chat.content);
+  } catch (error) {
+    console.error("Error parsing JSON from DB:", error);
+    throw new Error("Failed to parse chat content from the database");
+  }
+
+  // Compare the conversation history with DB content
+  let clientHistoryWithoutLastMessage = conversationHistory.slice(0, -1);
+  if (currentDbContent.length !== clientHistoryWithoutLastMessage.length) {
+    return false;
+  }
+  // Add new message to DB
+  await updateContentDB(
+    prisma,
+    chatId,
+    clientHistoryWithoutLastMessage,
+    message
+  );
+
+  return true;
+}
+
 async function getMostRelevantArticleChunk(
   question: string,
   url: string
@@ -133,45 +179,21 @@ export const chatRouter = createRouter()
       console.log(indexLines);
       console.log(conversationHistory);
 
-      // 0. Verify DB see if conversation is updated
-      // In case the conversation has been updated in the DB through another browser
-      const chat = await prisma.chat.findUnique({
-        where: {
-          id: chatId,
-        },
-        select: {
-          content: true,
-        },
-      });
+      // 1. Verify DB see if conversation is updated
+      // Add first user message to DB
+      let validateResult = await validateConversation(
+        prisma,
+        chatId,
+        conversationHistory,
+        message
+      );
 
-      if (!chat) {
-        throw new Error("Chat not found");
-      }
-
-      // Parse the content from the database
-      let currentDbContent;
-      try {
-        currentDbContent = JSON.parse(chat.content);
-      } catch (error) {
-        console.error("Error parsing JSON from DB:", error);
-        throw new Error("Failed to parse chat content from the database");
-      }
-
-      // Compare the conversation history with DB content
-      let clientHistoryWithoutLastMessage = conversationHistory.slice(0, -1);
-      if (currentDbContent.length !== clientHistoryWithoutLastMessage.length) {
+      if (validateResult === false) {
         return {
           reply:
             "The conversation history has been updated. Please refresh the page",
         };
       }
-      // 1. Add new message to DB
-      await updateContentDB(
-        prisma,
-        chatId,
-        clientHistoryWithoutLastMessage,
-        message
-      );
 
       // 2. verify input csv integrity
       if (JSON.stringify(indexLines) === "{}") {
@@ -348,7 +370,24 @@ export const chatRouter = createRouter()
       data: z.string(),
     }),
     resolve: async ({ ctx: { prisma }, input }) => {
-      const { message, conversationHistory } = JSON.parse(input.data);
+      const { message, conversationHistory, chatId } = JSON.parse(input.data);
+
+      // Verify DB see if conversation is updated
+      // Add first user message to DB
+      let validateResult = await validateConversation(
+        prisma,
+        chatId,
+        conversationHistory,
+        message
+      );
+
+      if (validateResult === false) {
+        return {
+          reply:
+            "The conversation history has been updated. Please refresh the page",
+        };
+      }
+
       const context = await getMostRelevantArticleChunk(
         message,
         process.env.EMBEDDING_SERVER_URL + "/search"
@@ -381,6 +420,7 @@ export const chatRouter = createRouter()
         replyMessage += reference + "\n\n";
       });
 
+      await updateContentDB(prisma, chatId, conversationHistory, replyMessage);
       return { reply: replyMessage };
     },
   })
@@ -389,7 +429,24 @@ export const chatRouter = createRouter()
       data: z.string(),
     }),
     resolve: async ({ ctx: { prisma }, input }) => {
-      const { message, conversationHistory } = JSON.parse(input.data);
+      const { message, conversationHistory, chatId } = JSON.parse(input.data);
+
+      // Verify DB see if conversation is updated
+      // Add first user message to DB
+      let validateResult = await validateConversation(
+        prisma,
+        chatId,
+        conversationHistory,
+        message
+      );
+
+      if (validateResult === false) {
+        return {
+          reply:
+            "The conversation history has been updated. Please refresh the page",
+        };
+      }
+
       const context = await getMostRelevantArticleChunk(
         message + conversationHistory,
         process.env.REPORT_SERVER_URL + "/search"
@@ -405,6 +462,8 @@ export const chatRouter = createRouter()
         prompt + message,
         JSON.stringify(context)
       );
+
+      await updateContentDB(prisma, chatId, conversationHistory, response);
       return { reply: response };
     },
   });

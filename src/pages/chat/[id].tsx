@@ -210,7 +210,7 @@ export const getServerSideProps = async ({
             return foundChat;
           }
 
-          // If no chat is found, create a new one
+          // If no chat is found
           throw new Error("Chat not found");
         }),
     ]);
