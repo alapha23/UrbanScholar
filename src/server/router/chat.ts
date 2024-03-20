@@ -14,6 +14,7 @@ import {
   chatCallJsonMode,
   chatCallWithContext,
 } from "@/utils/openai";
+import { matchKeywords } from "@/utils/helper";
 import { Chat, PrismaClient } from "@prisma/client";
 
 const getCurrentDirname = (metaUrl: string) => {
@@ -388,8 +389,17 @@ export const chatRouter = createRouter()
         };
       }
 
+      // match keywowrds.json
+      var keywords;
+      if (process.env.KEYWORDS) {
+        keywords = await matchKeywords(
+          process.env.KEYWORDS,
+          JSON.stringify(conversationHistory)
+        );
+      }
+
       const context = await getMostRelevantArticleChunk(
-        message,
+        message + JSON.stringify(keywords),
         process.env.EMBEDDING_SERVER_URL + "/search"
       );
       // deep copy
@@ -465,5 +475,28 @@ export const chatRouter = createRouter()
 
       await updateContentDB(prisma, chatId, conversationHistory, response);
       return { reply: response };
+    },
+  })
+  .mutation("fetch", {
+    input: z.object({
+      userId: z.string(),
+      skip: z.number(),
+    }),
+    resolve: async ({ ctx: { prisma }, input }) => {
+      // query 10 chats from index increment
+      const chats = await prisma.chat.findMany({
+        where: {
+          userId: input.userId,
+        },
+        skip: input.skip,
+        take: 10,
+        select: {
+          id: true,
+          title: true,
+        },
+      });
+      //console.log(chats);
+
+      return chats;
     },
   });
