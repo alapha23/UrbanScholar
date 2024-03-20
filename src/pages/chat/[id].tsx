@@ -3,7 +3,7 @@ import type {
   InferGetServerSidePropsType,
   NextPage,
 } from "next";
-import { unstable_getServerSession as getServerSession } from "next-auth";
+import { getServerSession } from "next-auth";
 import { useSession } from "next-auth/react";
 import Navbar from "@/components/Layout/Navbar";
 import { prisma } from "@/server/db/client";
@@ -13,6 +13,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/router";
 import { markdownToHtml } from "@/utils/text";
 import { trpc } from "@/utils/trpc";
+import Sidebar from "@/components/Home/Sidebar";
 
 const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
   const session = useSession();
@@ -142,56 +143,59 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
   return (
     <>
       <Navbar />
-      <div className={styles.conversationContainer}>
-        <div className={styles.chatBox}>
-          {conversation.map((msg, index) => (
-            //<div key={index} className={styles.message}>
-            <div
-              key={index}
-              className={`${styles.message} ${
-                msg.sender === "You" ? styles.yourMessage : ""
-              }`}
-            >
-              <p className={styles.sender}>{msg.sender}:</p>
-              {msg.table && (
-                <pre className={styles.commandLineText}>{msg.table}</pre>
-              )}
-              <div className={styles.messageContent}>
-                <div dangerouslySetInnerHTML={{ __html: msg.text }} />
-                {msg.imageUrl && (
-                  <img
-                    src={msg.imageUrl}
-                    alt="Response"
-                    className={styles.image}
-                  />
+      <div className={styles.mainContainer}>
+        <Sidebar userId={chat.userId} />
+        <div className={styles.conversationContainer}>
+          <div className={styles.chatBox}>
+            {conversation.map((msg, index) => (
+              //<div key={index} className={styles.message}>
+              <div
+                key={index}
+                className={`${styles.message} ${
+                  msg.sender === "You" ? styles.yourMessage : ""
+                }`}
+              >
+                <p className={styles.sender}>{msg.sender}:</p>
+                {msg.table && (
+                  <pre className={styles.commandLineText}>{msg.table}</pre>
                 )}
+                <div className={styles.messageContent}>
+                  <div dangerouslySetInnerHTML={{ __html: msg.text }} />
+                  {msg.imageUrl && (
+                    <img
+                      src={msg.imageUrl}
+                      alt="Response"
+                      className={styles.image}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-        <div className={styles.inputArea}>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            style={{ display: "none" }} // hide the actual file input
-          />
-          <button
-            onClick={handleFileUploadClick}
-            className={styles.fileUploadButton}
-          >
-            📁
-          </button>
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-            className={styles.input}
-          />
-          <button onClick={sendMessage} className={styles.sendButton}>
-            Send
-          </button>
+            ))}
+          </div>
+          <div className={styles.inputArea}>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              style={{ display: "none" }} // hide the actual file input
+            />
+            <button
+              onClick={handleFileUploadClick}
+              className={styles.fileUploadButton}
+            >
+              📁
+            </button>
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+              className={styles.input}
+            />
+            <button onClick={sendMessage} className={styles.sendButton}>
+              Send
+            </button>
+          </div>
         </div>
       </div>
     </>
@@ -218,6 +222,7 @@ export const getServerSideProps = async ({
           where: { id: urlId },
           select: {
             id: true,
+            userId: true,
             title: true,
             content: true,
           },

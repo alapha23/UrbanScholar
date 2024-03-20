@@ -140,3 +140,65 @@ export async function readCSV(): Promise<{ [key: string]: string[] }> {
     });
   });
 }
+
+export interface Message {
+  sender: string;
+  text: string;
+  timestamp: Date;
+}
+
+// Function to read keywords from a JSON file and match them against a user sentence
+export async function matchKeywords(
+  directory: string,
+  userSentence: string
+): Promise<string[]> {
+  try {
+    // Construct the full path to the keywords.json file
+    const filePath = path.join(directory, "keywords.json");
+
+    // Check if the file exists
+    if (!fs.existsSync(filePath)) {
+      console.error("File does not exist.");
+      return [];
+    }
+
+    // Read the file
+    const data = fs.readFileSync(filePath, "utf8");
+    const keywords: string[] = JSON.parse(data);
+
+    // Check if the keyword list is empty
+    if (keywords.length === 0) {
+      console.error("Keyword list is empty.");
+      return [];
+    }
+
+    // Preprocess the user sentence by removing JSON structure, punctuation, and converting to lowercase
+    const processedSentence = userSentence
+      .replace(/[{[\]}]/g, "") // Remove JSON-like structures
+      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "") // Remove punctuation
+      .toLowerCase(); // Convert to lowercase
+
+    // Split the processed sentence into words for comparison
+    const sentenceWords = processedSentence.split(/\s+/);
+
+    // Function to calculate relevance of a keyword to the user sentence
+    const calculateRelevance = (keyword: string) => {
+      const keywordWords = keyword.toLowerCase().split(" ");
+      const commonWords = keywordWords.filter((word) =>
+        sentenceWords.includes(word)
+      );
+      return commonWords.length;
+    };
+
+    // Sort keywords by relevance
+    const sortedKeywords = keywords.sort(
+      (a, b) => calculateRelevance(b) - calculateRelevance(a)
+    );
+
+    // Return the top 3 or fewer keywords
+    return sortedKeywords.slice(0, 3);
+  } catch (error) {
+    console.error("An error occurred:", error);
+    return [];
+  }
+}

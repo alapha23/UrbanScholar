@@ -1,9 +1,15 @@
+.mainContainer {
+  display: flex;
+  align-items: flex-start;
+}
+
 .conversationContainer {
   max-width: 700px;
   margin: 50px auto;
   border: 1px solid #ddd;
   border-radius: 10px;
   overflow: hidden;
+  flex-grow: 1;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
