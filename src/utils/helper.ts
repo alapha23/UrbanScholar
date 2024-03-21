@@ -1,6 +1,9 @@
 import fs from "fs";
 import path from "path";
 import readline from "readline";
+import { readFileSync, existsSync } from "fs";
+import { exec } from "child_process";
+import { promisify } from "util";
 
 // For state management
 export enum StateType {
@@ -147,58 +150,70 @@ export interface Message {
   timestamp: Date;
 }
 
-// Function to read keywords from a JSON file and match them against a user sentence
+const execAsync = promisify(exec);
+
 export async function matchKeywords(
   directory: string,
   userSentence: string
 ): Promise<string[]> {
-  try {
-    // Construct the full path to the keywords.json file
-    const filePath = path.join(directory, "keywords.json");
+  const filePath = directory;
 
-    // Check if the file exists
-    if (!fs.existsSync(filePath)) {
-      console.error("File does not exist.");
-      return [];
-    }
-
-    // Read the file
-    const data = fs.readFileSync(filePath, "utf8");
-    const keywords: string[] = JSON.parse(data);
-
-    // Check if the keyword list is empty
-    if (keywords.length === 0) {
-      console.error("Keyword list is empty.");
-      return [];
-    }
-
-    // Preprocess the user sentence by removing JSON structure, punctuation, and converting to lowercase
-    const processedSentence = userSentence
-      .replace(/[{[\]}]/g, "") // Remove JSON-like structures
-      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "") // Remove punctuation
-      .toLowerCase(); // Convert to lowercase
-
-    // Split the processed sentence into words for comparison
-    const sentenceWords = processedSentence.split(/\s+/);
-
-    // Function to calculate relevance of a keyword to the user sentence
-    const calculateRelevance = (keyword: string) => {
-      const keywordWords = keyword.toLowerCase().split(" ");
-      const commonWords = keywordWords.filter((word) =>
-        sentenceWords.includes(word)
-      );
-      return commonWords.length;
-    };
-
-    // Sort keywords by relevance
-    const sortedKeywords = keywords.sort(
-      (a, b) => calculateRelevance(b) - calculateRelevance(a)
-    );
-
-    // Return the top 3 or fewer keywords
-    return sortedKeywords.slice(0, 3);
-  } catch (error) {
-    console.error("An error occurred:", error);
+  if (!existsSync(filePath)) {
     return [];
   }
+
+  let keywords = JSON.parse(readFileSync(filePath, "utf-8"));
+
+  if (keywords.length === 0) {
+    return [];
+  }
+
+  // Preprocess the user sentence (remove JSON structure and punctuations)
+  userSentence = userSentence
+    .replace(/[{[\]}]/g, "")
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+
+  try {
+    const { stdout } = await execAsync(
+      `python3 ./script/semantic_analysis.py "${userSentence}" ${directory}`
+    );
+    return JSON.parse(stdout);
+  } catch (error) {
+    console.error("Error calling the Python script:", error);
+    return [];
+  }
+}
+
+export async function sizeDownConversationHistory(
+  conversationHistory: Array<{ sender: string; text: string }>
+) {
+  var limitedConversationHistory: Array<{ sender: string; text: string }> = [];
+  const calculateTotalLength = (
+    entries: Array<{ sender: string; text: string }>
+  ) => {
+    return entries.reduce(
+      (total, entry) => total + JSON.stringify(entry).length,
+      0
+    );
+  };
+
+  // Determine how many of the last entries to include based on the total length
+  console.log("debug 1");
+  let entriesToInclude = 10;
+  for (let i = 10; i > 0; i--) {
+    const lastEntries = conversationHistory.slice(-i);
+    if (calculateTotalLength(lastEntries) <= 20000) {
+      entriesToInclude = i;
+      break;
+    }
+  }
+
+  // If even the last entry is too long, we don't include anything
+  if (entriesToInclude > 0) {
+    const lastEntries = conversationHistory.slice(-entriesToInclude);
+    limitedConversationHistory.push(...lastEntries);
+  }
+  console.log("debug 2");
+
+  return limitedConversationHistory;
 }

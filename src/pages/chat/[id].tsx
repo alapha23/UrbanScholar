@@ -61,7 +61,7 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
         response = await analysisMutation.mutateAsync({
           data: JSON.stringify({
             message,
-            conversationHistory: newConversation,
+            originalConversationHistory: newConversation,
             chatId: chatId,
           }),
         });
@@ -69,7 +69,7 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
         response = await qnaMutation.mutateAsync({
           data: JSON.stringify({
             message,
-            conversationHistory: newConversation,
+            originalConversationHistory: newConversation,
             chatId: chatId,
           }),
         });
@@ -77,7 +77,7 @@ const ChatProfile: NextPage<ChatProfileProps> = ({ chat }) => {
         response = await reportMutation.mutateAsync({
           data: JSON.stringify({
             message,
-            conversationHistory: newConversation,
+            originalConversationHistory: newConversation,
             chatId: chatId,
           }),
         });

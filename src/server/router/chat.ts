@@ -14,7 +14,7 @@ import {
   chatCallJsonMode,
   chatCallWithContext,
 } from "@/utils/openai";
-import { matchKeywords } from "@/utils/helper";
+import { matchKeywords, sizeDownConversationHistory } from "@/utils/helper";
 import { Chat, PrismaClient } from "@prisma/client";
 
 const getCurrentDirname = (metaUrl: string) => {
@@ -69,10 +69,10 @@ async function updateContentDB(
 async function validateConversation(
   prisma: PrismaClient,
   chatId: string,
-  conversationHistory: any[],
+  conversationHistory: Array<{ sender: string; text: string }>,
   message: string
 ) {
-  console.log("chatid", chatId);
+  console.log("validate conversation of chatid", chatId);
   // In case the conversation has been updated in the DB through another browser
   const chat = await prisma.chat.findUnique({
     where: {
@@ -175,17 +175,18 @@ export const chatRouter = createRouter()
       data: z.string(),
     }),
     resolve: async ({ ctx: { prisma }, input }) => {
-      const { message, conversationHistory, chatId } = JSON.parse(input.data);
+      const { message, originalConversationHistory, chatId } = JSON.parse(
+        input.data
+      );
       let indexLines = await readCSV();
-      console.log(indexLines);
-      console.log(conversationHistory);
+      //console.log(indexLines);
 
       // 1. Verify DB see if conversation is updated
       // Add first user message to DB
       let validateResult = await validateConversation(
         prisma,
         chatId,
-        conversationHistory,
+        originalConversationHistory,
         message
       );
 
@@ -196,10 +197,19 @@ export const chatRouter = createRouter()
         };
       }
 
+      // limit the size of the conversation history that we use to fit the context window
+      const conversationHistory: Array<{ sender: string; text: string }> =
+        await sizeDownConversationHistory(originalConversationHistory);
+
       // 2. verify input csv integrity
       if (JSON.stringify(indexLines) === "{}") {
         let reply = "Please upload data files";
-        await updateContentDB(prisma, chatId, conversationHistory, reply);
+        await updateContentDB(
+          prisma,
+          chatId,
+          originalConversationHistory,
+          reply
+        );
 
         return { reply: reply };
       }
@@ -220,7 +230,12 @@ export const chatRouter = createRouter()
           " To proceed with linear regression analysis,\
           please inform me the independent variables and dependent variables\n";
 
-        await updateContentDB(prisma, chatId, conversationHistory, reply);
+        await updateContentDB(
+          prisma,
+          chatId,
+          originalConversationHistory,
+          reply
+        );
         return { reply: reply };
       }
 
@@ -241,7 +256,12 @@ export const chatRouter = createRouter()
       if ("error" in reply_json) {
         let reply = reply_json["error"];
 
-        await updateContentDB(prisma, chatId, conversationHistory, reply);
+        await updateContentDB(
+          prisma,
+          chatId,
+          originalConversationHistory,
+          reply
+        );
         return { reply: reply };
       }
 
@@ -249,7 +269,12 @@ export const chatRouter = createRouter()
       if (reply_json["independent_var"] === undefined) {
         let reply = "Please specify the name of the independent variable";
 
-        await updateContentDB(prisma, chatId, conversationHistory, reply);
+        await updateContentDB(
+          prisma,
+          chatId,
+          originalConversationHistory,
+          reply
+        );
         return { reply: reply };
       }
       independent_var = reply_json["independent_var"];
@@ -268,7 +293,12 @@ export const chatRouter = createRouter()
       if (reply_json["dependent_var"] === undefined) {
         let reply = "Please specify the name of the dependent variable";
 
-        await updateContentDB(prisma, chatId, conversationHistory, reply);
+        await updateContentDB(
+          prisma,
+          chatId,
+          originalConversationHistory,
+          reply
+        );
         return { reply: reply };
       }
       dependent_var = reply_json["dependent_var"];
@@ -302,7 +332,12 @@ export const chatRouter = createRouter()
       if ("error" in Object.keys(verifyIndexJson)) {
         let reply = reply_json["error"];
 
-        await updateContentDB(prisma, chatId, conversationHistory, reply);
+        await updateContentDB(
+          prisma,
+          chatId,
+          originalConversationHistory,
+          reply
+        );
         return { reply: reply };
       }
 
@@ -360,7 +395,12 @@ export const chatRouter = createRouter()
       const analysisReply = await chatCall(prompt);
 
       // 9. save analysis to DB
-      await updateContentDB(prisma, chatId, conversationHistory, analysisReply);
+      await updateContentDB(
+        prisma,
+        chatId,
+        originalConversationHistory,
+        analysisReply
+      );
 
       console.log(analysisReply);
       return { table: analysisResult, reply: analysisReply };
@@ -371,14 +411,16 @@ export const chatRouter = createRouter()
       data: z.string(),
     }),
     resolve: async ({ ctx: { prisma }, input }) => {
-      const { message, conversationHistory, chatId } = JSON.parse(input.data);
+      const { message, originalConversationHistory, chatId } = JSON.parse(
+        input.data
+      );
 
       // Verify DB see if conversation is updated
       // Add first user message to DB
       let validateResult = await validateConversation(
         prisma,
         chatId,
-        conversationHistory,
+        originalConversationHistory,
         message
       );
 
@@ -389,13 +431,15 @@ export const chatRouter = createRouter()
         };
       }
 
+      // limit the size of the conversation history that we use to fit the context window
+      const conversationHistory: Array<{ sender: string; text: string }> =
+        await sizeDownConversationHistory(originalConversationHistory);
+
       // match keywowrds.json
       var keywords;
       if (process.env.KEYWORDS) {
-        keywords = await matchKeywords(
-          process.env.KEYWORDS,
-          JSON.stringify(conversationHistory)
-        );
+        keywords = await matchKeywords(process.env.KEYWORDS, message);
+        console.log("matched keywords", keywords);
       }
 
       const context = await getMostRelevantArticleChunk(
@@ -405,7 +449,7 @@ export const chatRouter = createRouter()
       // deep copy
       const contexts = JSON.parse(JSON.stringify(context));
 
-      contexts.push(conversationHistory);
+      contexts.push(JSON.stringify(conversationHistory));
       console.log("contexts", contexts);
       const response = await chatCallWithContext(
         message,
@@ -430,7 +474,12 @@ export const chatRouter = createRouter()
         replyMessage += reference + "\n\n";
       });
 
-      await updateContentDB(prisma, chatId, conversationHistory, replyMessage);
+      await updateContentDB(
+        prisma,
+        chatId,
+        originalConversationHistory,
+        replyMessage
+      );
       return { reply: replyMessage };
     },
   })
@@ -439,14 +488,16 @@ export const chatRouter = createRouter()
       data: z.string(),
     }),
     resolve: async ({ ctx: { prisma }, input }) => {
-      const { message, conversationHistory, chatId } = JSON.parse(input.data);
+      const { message, originalConversationHistory, chatId } = JSON.parse(
+        input.data
+      );
 
       // Verify DB see if conversation is updated
       // Add first user message to DB
       let validateResult = await validateConversation(
         prisma,
         chatId,
-        conversationHistory,
+        originalConversationHistory,
         message
       );
 
@@ -457,11 +508,15 @@ export const chatRouter = createRouter()
         };
       }
 
+      // limit the size of the conversation history that we use to fit the context window
+      const conversationHistory: Array<{ sender: string; text: string }> =
+        await sizeDownConversationHistory(originalConversationHistory);
+
       const context = await getMostRelevantArticleChunk(
         message + conversationHistory,
         process.env.REPORT_SERVER_URL + "/search"
       );
-      context.push(conversationHistory);
+      context.push(JSON.stringify(conversationHistory));
       console.log("context", context);
       const prompt =
         "Genenerate a report for potential policy makers, mimic formats used in urban planning policy documents\
@@ -473,7 +528,12 @@ export const chatRouter = createRouter()
         JSON.stringify(context)
       );
 
-      await updateContentDB(prisma, chatId, conversationHistory, response);
+      await updateContentDB(
+        prisma,
+        chatId,
+        originalConversationHistory,
+        response
+      );
       return { reply: response };
     },
   })
