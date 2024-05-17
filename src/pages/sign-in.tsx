@@ -1,20 +1,24 @@
-import type { GetServerSideProps, NextPage } from "next";
+import type {
+  GetServerSideProps,
+  InferGetServerSidePropsType,
+  NextPage,
+} from "next";
 import { useRouter } from "next/router";
 import { unstable_getServerSession as getServerSession } from "next-auth";
 import { signIn } from "next-auth/react";
 import { useEffect } from "react";
 import toast from "react-hot-toast";
-import { BsFacebook } from "react-icons/bs";
+import { prisma } from "@/server/db/client";
 import { FcGoogle } from "react-icons/fc";
-
 import Navbar from "@/components/Layout/Navbar";
 import Meta from "@/components/Shared/Meta";
-
 import { authOptions } from "./api/auth/[...nextauth]";
+import { trpc } from "@/utils/trpc"; // Adjust the import according to your trpc setup
 
-const SignIn: NextPage = () => {
+const SignIn: NextPage<SignInPageProps> = ({ session, serId }) => {
   const router = useRouter();
   const error = router.query.error as string;
+  const getRoleMutation = trpc.useMutation("register.getRole");
 
   useEffect(() => {
     if (error) {
@@ -36,6 +40,27 @@ const SignIn: NextPage = () => {
     }
   }, [error]);
 
+  useEffect(() => {
+    const checkUserRoleSelection = async () => {
+      const userId = session?.user?.id; // Replace with actual user ID retrieval logic
+
+      if (userId) {
+        const response = await getRoleMutation.mutateAsync({
+          data: JSON.stringify({ userId }),
+        });
+
+        console.log("Response of verifying the existence of role");
+        if (response) {
+          router.push("/chat");
+        } else {
+          router.push("/role-selection");
+        }
+      }
+    };
+
+    checkUserRoleSelection();
+  }, [router, getRoleMutation]);
+
   const handleSignIn = (provider: string) => {
     signIn(provider).catch((err) => {
       console.log(err);
@@ -47,7 +72,11 @@ const SignIn: NextPage = () => {
 
   return (
     <>
-      <Meta title="Log in | UrbanScholar" description="Log in" image="/favicon.png" />
+      <Meta
+        title="Log in | UrbanScholar"
+        description="Log in"
+        image="/favicon.png"
+      />
       <div className="min-h-screen flex flex-col items-stretch">
         <Navbar />
         <div className="flex-grow flex flex-col justify-center items-center gap-3">
@@ -64,7 +93,7 @@ const SignIn: NextPage = () => {
             <span>Continue with Google</span>
             <FcGoogle className="absolute top-1/2 -translate-y-1/2 left-3 w-6 h-6" />
           </button>
-       </div>
+        </div>
       </div>
     </>
   );
@@ -72,22 +101,45 @@ const SignIn: NextPage = () => {
 
 export default SignIn;
 
+type SignInPageProps = InferGetServerSidePropsType<typeof getServerSideProps>;
+
 export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
   const session = await getServerSession(req, res, authOptions);
 
   if (session?.user) {
-    return {
-      redirect: {
-        destination: "/chat",
-        permanent: true,
+    const role = await prisma.user.findFirst({
+      where: {
+        id: session?.user?.id,
       },
-      props: {},
-    };
+      select: {
+        role: true,
+      },
+    });
+
+    console.log("New sign-in with Role:", role);
+    if (role === null || role?.role != null) {
+      return {
+        redirect: {
+          destination: "/chat",
+          permanent: false,
+        },
+        props: {},
+      };
+    } else {
+      return {
+        redirect: {
+          destination: "/role-selection",
+          permanent: false,
+        },
+        props: {},
+      };
+    }
   }
 
   return {
     props: {
-      session,
+      session: session,
+      userId: session?.user?.id,
     },
   };
 };
