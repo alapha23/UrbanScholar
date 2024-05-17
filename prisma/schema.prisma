@@ -45,6 +45,7 @@ model User {
     email         String?   @unique
     emailVerified DateTime?
     image         String?
+    role          String? // planner, policy_maker, or citizen
     accounts      Account[]
     sessions      Session[]
     videos        Video[]
@@ -53,8 +54,22 @@ model User {
     followers     Follow[]  @relation("followings")
     followings    Follow[]  @relation("followers")
     chats         Chat[]
+    profile       Profile?
 
     @@fulltext([name, email])
+}
+
+model Profile {
+    id          String  @id @unique
+    userId      String  @unique
+    user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    firstName   String?
+    middleName  String?
+    lastName    String?
+    affiliation String?
+    age         String?
+    gender      String?
+    profession  String?
 }
 
 model VerificationToken {
