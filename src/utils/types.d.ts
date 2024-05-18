@@ -11,3 +11,9 @@ declare module "next-auth" {
     };
   }
 }
+
+export type Project = {
+  projectId: string;
+  title: string;
+  description: string;
+};

@@ -50,8 +50,9 @@ const SignIn: NextPage<SignInPageProps> = ({ session, serId }) => {
         });
 
         console.log("Response of verifying the existence of role");
-        if (response) {
-          router.push("/chat");
+        if (response != null) {
+          if (response.role === "planner") router.push("project");
+          else router.push("/chat");
         } else {
           router.push("/role-selection");
         }
@@ -117,14 +118,24 @@ export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
     });
 
     console.log("New sign-in with Role:", role);
-    if (role === null || role?.role != null) {
-      return {
-        redirect: {
-          destination: "/chat",
-          permanent: false,
-        },
-        props: {},
-      };
+    if (role != null && role.role != null) {
+      if (role.role === "planner") {
+        return {
+          redirect: {
+            destination: "/project",
+            permanent: false,
+          },
+          props: {},
+        };
+      } else {
+        return {
+          redirect: {
+            destination: "/chat",
+            permanent: false,
+          },
+          props: {},
+        };
+      }
     } else {
       return {
         redirect: {

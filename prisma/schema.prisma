@@ -55,8 +55,20 @@ model User {
     followings    Follow[]  @relation("followers")
     chats         Chat[]
     profile       Profile?
+    project       Project[]
 
     @@fulltext([name, email])
+}
+
+// only planners can own projects
+model Project {
+    id      String @id @default(cuid())
+    userId  String @unique
+    user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    title   String
+    description String @default("")
+    stage   Int    @default(0)
+    chats   Chat[]
 }
 
 model Profile {
@@ -89,7 +101,9 @@ model Chat {
     updatedAt   DateTime  @updatedAt
     content     String    @db.LongText
     images      Image[]
+    projectId   String?   // to be mandatory after project bonding with all roles complete
     user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model Image {
