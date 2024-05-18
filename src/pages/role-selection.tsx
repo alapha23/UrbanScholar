@@ -59,7 +59,11 @@ const RoleSelection: NextPage<RoleSelectionPageProps> = ({ userId }) => {
         });
 
         if (roleResponse === true) {
-          router.push("/");
+          if (role === "planner") {
+            router.push("project");
+          } else {
+            router.push("/");
+          }
         } else {
           setErrorMessage(roleResponse.message || "Failed to save role.");
         }
