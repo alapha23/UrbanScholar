@@ -34,6 +34,21 @@ export const projectRouter = createRouter()
         }
       });
 
+      // Create 5 Chat
+      const chatIds = [];
+      for (let i = 0; i < 5; i++) {
+        const chat = await prisma.chat.create({
+          data: {
+            userId: userId,
+            title: "New Chat",
+            content: "[]",
+          }
+        });
+        if (!chat)
+          throw new Error("failed to create new Chat");
+        chatIds.push(chat.id);
+      }
+
       // Now create stages with the correct projectId
       const stagesData = new Array(5).fill({}).map((_, index) => ({
         projectId: project.id,  // We now have a valid projectId after project creation
@@ -47,7 +62,8 @@ export const projectRouter = createRouter()
           data: {
             projectId: project.id,
             status: 0,
-            pos: i
+            pos: i,
+            chatId: chatIds[i] as string,
           }
         });
       }

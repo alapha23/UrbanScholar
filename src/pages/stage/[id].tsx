@@ -14,6 +14,7 @@ import { authOptions } from "../api/auth/[...nextauth]";
 import Navbar from "@/components/Layout/Navbar";
 import { trpc } from "@/utils/trpc";
 import { Project, Stage } from "@prisma/client";
+import ChatSection from "@/components/Home/ChatSection";
 
 const stages = [
   "Set Goals",
@@ -28,13 +29,18 @@ const StagePage: NextPage<StagePageProps> = ({
   userId,
   stageId,
   stage,
-  project
+  project,
 }) => {
   const router = useRouter();
   const stageUpdateMutation = trpc.useMutation("stage.update");
+  const fetchOneMutation = trpc.useMutation("chat.fetch-one");
+  const [chatContent, setChatContent] = useState<string>("");
 
   useEffect(() => {
-  }, [stageId]);
+    if (stage?.chatId) {
+      restoreChatContent(stage.chatId);
+    }
+  }, [stageId, stage]);
 
   const handleBackClick = async () => {
     await stageUpdateMutation.mutateAsync({
@@ -44,6 +50,10 @@ const StagePage: NextPage<StagePageProps> = ({
   };
 
   const handleFinalizeClick = async () => {
+    if (!stage || !project) {
+      throw new Error("Stage or Project is undefined or null");
+    }
+
     await stageUpdateMutation.mutateAsync({
       data: JSON.stringify({ id: stageId }),
     });
@@ -59,14 +69,26 @@ const StagePage: NextPage<StagePageProps> = ({
     }
   };
 
+  const restoreChatContent = async (chatId: string) => {
+    try {
+      const chat = await fetchOneMutation.mutateAsync({ chatId });
+      if (!chat) {
+        throw new Error("Non-existing Chat ID");
+      }
+      setChatContent(chat.content);
+    } catch (error) {
+      console.error("Failed to fetch chat content:", error);
+    }
+  };
+
   return (
     <>
       <Navbar />
       <div className={styles.container}>
         <div className={styles.progressBar}>
-          {JSON.parse(project.allStageIds).map((stageId, index) => (
+          {project?.allStageIds && JSON.parse(project.allStageIds).map((stageId: String, index: number) => (
             <div
-              key={stageId}
+              key={stageId as string}
               className={`${styles.stage} ${stage.pos === index + 1 ? styles.current : ""}`}
               onClick={() => {
                 if (stage.status !== 0) {
@@ -81,7 +103,16 @@ const StagePage: NextPage<StagePageProps> = ({
             </div>
           ))}
         </div>
-        <div className={styles.content}>{/* Stage content goes here */}</div>
+        <div className={styles.content}>
+          {stage &&
+            <ChatSection
+              userId={userId}
+              task="QnA"
+              chatId={stage.chatId}
+              initialChatContent={chatContent}
+            />
+          }
+        </div>
         <div>
           <button
             className={`${styles.finishButton} ${styles.button}`}
@@ -136,6 +167,8 @@ export const getServerSideProps = async ({
       notFound: true,
     };
   }
+
+  const initialChatId = stage.chatId;
 
   return {
     props: {

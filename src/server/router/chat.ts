@@ -69,7 +69,7 @@ async function updateContentDB(
 async function validateConversation(
   prisma: PrismaClient,
   chatId: string,
-  conversationHistory: Array<{ sender: string; text: string }>,
+  conversationHistory: Array<{ sender: string; text: string; }>,
   message: string
 ) {
   console.log("validate conversation of chatid", chatId);
@@ -134,6 +134,7 @@ async function getMostRelevantArticleChunk(
 
   try {
     const response = await axios.request(config);
+    console.log("comes from FAISS", response);
     const context = JSON.parse(JSON.stringify(response.data.context));
     return context;
   } catch (error) {
@@ -198,7 +199,7 @@ export const chatRouter = createRouter()
       }
 
       // limit the size of the conversation history that we use to fit the context window
-      const conversationHistory: Array<{ sender: string; text: string }> =
+      const conversationHistory: Array<{ sender: string; text: string; }> =
         await sizeDownConversationHistory(originalConversationHistory);
 
       // 2. verify input csv integrity
@@ -432,7 +433,7 @@ export const chatRouter = createRouter()
       }
 
       // limit the size of the conversation history that we use to fit the context window
-      const conversationHistory: Array<{ sender: string; text: string }> =
+      const conversationHistory: Array<{ sender: string; text: string; }> =
         await sizeDownConversationHistory(originalConversationHistory);
 
       // match keywowrds.json
@@ -509,7 +510,7 @@ export const chatRouter = createRouter()
       }
 
       // limit the size of the conversation history that we use to fit the context window
-      const conversationHistory: Array<{ sender: string; text: string }> =
+      const conversationHistory: Array<{ sender: string; text: string; }> =
         await sizeDownConversationHistory(originalConversationHistory);
 
       const context = await getMostRelevantArticleChunk(
@@ -559,4 +560,27 @@ export const chatRouter = createRouter()
 
       return chats;
     },
+  })
+  .mutation("fetch-one", {
+    input: z.object({
+      chatId: z.string(),
+    }),
+    resolve: async ({ ctx: { prisma }, input }) => {
+      const chatId = input.chatId;
+      const chats = await prisma.chat.findFirst({
+        where: {
+          id: chatId,
+        },
+        select: {
+          id: true,
+          userId: true,
+          title: true,
+          content: true,
+        },
+      });
+      //console.log(chats);
+
+      return chats;
+    },
   });
+

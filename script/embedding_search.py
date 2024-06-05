@@ -44,6 +44,8 @@ class EmbeddingSearchEngine:
         self.index = faiss.IndexFlatL2(self.embeddings.shape[1])
         self.index.add(self.embeddings)
         self.isEmpty = False
+        print('index engine init', self.model)
+        print("index engine init", self.index)
     
     def answer(self, question, k=10):
         # k: top few chunks
@@ -170,7 +172,7 @@ def get_all_cached_summaries():
     """Retrieve all summaries from the cache directory."""
     summaries = []
     for cache_file in os.listdir(CACHE_DIR):
-        if cache_file.endswith('.cache'):
+        if cache_file.endswith('.txt'):
             with open(os.path.join(CACHE_DIR, cache_file), 'r') as f:
                 summaries.append(f.read().strip())
     return summaries
@@ -246,7 +248,6 @@ def init_summary():
 
     # Get all summaries from cache (both old and new)
     all_summaries = get_all_cached_summaries()
-
     engine = EmbeddingSearchEngine(chunks=all_summaries, chunk_size=chunk_size)
     return jsonify({'message': 'Initialization successful'})
 
