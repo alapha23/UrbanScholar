@@ -8,6 +8,7 @@ import { videoRouter } from "./video";
 import { chatRouter } from "./chat";
 import { registerRouter } from "./register";
 import { projectRouter } from "./project";
+import { stageRouter } from "./stage";
 
 export const appRouter = createRouter()
   .transformer(superjson)
@@ -17,6 +18,7 @@ export const appRouter = createRouter()
   .merge("comment.", commentRouter)
   .merge("register.", registerRouter)
   .merge("project.", projectRouter)
+  .merge("stage.", stageRouter)
   .merge("chat.", chatRouter);
 
 export type AppRouter = typeof appRouter;

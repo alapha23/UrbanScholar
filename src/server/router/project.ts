@@ -23,35 +23,49 @@ export const projectRouter = createRouter()
         userId,
       });
 
+      // Assuming the project creation is successful
       const project = await prisma.project.create({
         data: {
-          title: title,
-          description: description,
-          userId: userId,
-          stage: 1,
-        },
+          title,
+          description,
+          userId,
+          // initially without stages if not immediately required
+          allStageIds: ""
+        }
       });
-      // TODO: add create chat, link with project stage 1
-      return project.id;
-    },
-  })
-  .mutation("current-stage", {
-    input: z.object({
-      data: z.string(),
-    }),
-    resolve: async ({ ctx: { prisma }, input }) => {
-      const { projectId } = JSON.parse(input.data);
-      const project = await prisma.project.findFirst({
-        where: {
-          id: projectId,
-        },
-        select: {
-          stage: true,
-        },
+
+      // Now create stages with the correct projectId
+      const stagesData = new Array(5).fill({}).map((_, index) => ({
+        projectId: project.id,  // We now have a valid projectId after project creation
+        status: 0,              // Explicitly setting default values if necessary
+        pos: index              // 'pos' field increments from 0 to 4
+      }));
+
+      console.log(stagesData);
+      for (let i = 0; i < 5; i++) {
+        await prisma.stage.create({
+          data: {
+            projectId: project.id,
+            status: 0,
+            pos: i
+          }
+        });
+      }
+      // Fetch all stage IDs for storing in allStageIds
+      const stages = await prisma.stage.findMany({
+        where: { projectId: project.id },
+        select: { id: true }
       });
-      if (project != null) {
-        return project.stage;
-      } else return null;
+      const allStageIds = JSON.stringify(stages.map(stage => stage.id));
+      console.log(allStageIds);
+
+      // Update the project with all stage IDs
+      const updatedProject = await prisma.project.update({
+        where: { id: project.id },
+        data: { allStageIds: allStageIds },
+      });
+      console.log(updatedProject);
+      return updatedProject;
     },
   })
   .mutation("fetch-all", {
@@ -69,14 +83,16 @@ export const projectRouter = createRouter()
           title: true,
           description: true,
           id: true,
+          allStageIds: true,
         },
-        take: 20,
+        take: 30,
       });
       if (projects == null || projects.length == 0) return [];
       const projectLst: Project[] = projects.map((project) => ({
         title: project.title,
         description: project.description,
         projectId: project.id,
+        allStageIds: project.allStageIds,
       }));
 
       return projectLst;
@@ -122,31 +138,6 @@ export const projectRouter = createRouter()
         return {
           success: false,
           message: "Failed to update user role.",
-        };
-      }
-    },
-  })
-  .mutation("update", {
-    input: z.object({
-      data: z.string(),
-    }),
-    resolve: async ({ ctx: { prisma }, input }) => {
-      try {
-        const { projectId, stage } = JSON.parse(input.data);
-        const res = await prisma.project.update({
-          where: {
-            id: projectId,
-          },
-          data: {
-            stage: stage,
-          },
-        });
-        return true;
-      } catch (error) {
-        console.error("Error updating stage:", error);
-        return {
-          success: false,
-          message: "Failed to update project stage.",
         };
       }
     },

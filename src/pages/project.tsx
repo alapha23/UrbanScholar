@@ -46,19 +46,22 @@ const ProjectPage: NextPage<ProjectPageProps> = ({ userId }) => {
       newProjectTitle,
       newProjectDescription
     );
-    const projectId: String = await projectCreateMutation.mutateAsync({
+    const project = await projectCreateMutation.mutateAsync({
       data: JSON.stringify({
         userId: userId,
         title: newProjectTitle,
         description: newProjectDescription,
       }),
     });
-    console.log("create project ", projectId);
-    router.push(`/project/${projectId}`);
+    console.log("create project ", project);
+    const stages = JSON.parse(project.allStageIds);
+    console.log("project comes with stages: ", stages);
+    router.push(`/stage/${stages[0]}`);
   };
 
-  const handleProjectClick = (projectId: string) => {
-    router.push(`/project/${projectId}`);
+  const handleProjectClick = (project: Project) => {
+    const allStageIds = JSON.parse(project.allStageIds);
+    router.push(`/stage/${allStageIds[0]}`);
   };
 
   return (
@@ -78,7 +81,7 @@ const ProjectPage: NextPage<ProjectPageProps> = ({ userId }) => {
             <div
               key={project.projectId}
               className={styles.projectCard}
-              onClick={() => handleProjectClick(project.projectId)}
+              onClick={() => handleProjectClick(project)}
             >
               <h3>{project.title}</h3>
               <p className={styles.description}>{project.description}</p>

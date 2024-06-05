@@ -198,10 +198,11 @@ def save_summary_to_cache(chunk_idx, summary):
 
 def is_cached(filename, num_chunks):
     """Check if all chunks of a file are present in the cache."""
-    print(filename, num_chunks)
+    print("check", filename, num_chunks)
     for idx in range(num_chunks):
         chunk_id = f"{filename}_{idx}"
-        if not os.path.exists(os.path.join(CACHE_DIR, f"{chunk_id}.cache")):
+        print("check", os.path.join(CACHE_DIR, f"{chunk_id}.txt"))
+        if not os.path.exists(os.path.join(CACHE_DIR, f"{chunk_id}.txt")):
             print(filename, "is not cached")
             return False
     print(filename, "is cached")
