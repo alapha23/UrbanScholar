@@ -13,6 +13,7 @@ declare module "next-auth" {
 }
 
 export type Project = {
+  allStageIds: any;
   projectId: string;
   title: string;
   description: string;
