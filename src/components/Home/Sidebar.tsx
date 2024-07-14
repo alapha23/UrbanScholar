@@ -1,4 +1,4 @@
-import Image from "next/future/image";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useSession } from "next-auth/react";
@@ -31,11 +31,10 @@ const Sidebar: FC<SidebarProps> = ({
       <div className="flex flex-col items-stretch gap-5 [&_svg]:h-7 [&_svg]:w-7 font-semibold pb-6 border-b">
         <Link href="/">
           <a
-            className={`flex items-center gap-2 ${
-              !router.query.following
+            className={`flex items-center gap-2 ${!router.query.following
                 ? "fill-pink text-pink"
                 : "fill-black text-black"
-            }`}
+              }`}
           >
             {!router.query.following ? <AiFillHome /> : <AiOutlineHome />}
             <span className="hidden lg:inline">For You</span>
@@ -43,11 +42,10 @@ const Sidebar: FC<SidebarProps> = ({
         </Link>
         <Link href={session.data?.user ? "/?following=1" : "/sign-in"}>
           <a
-            className={`flex items-center gap-2 ${
-              router.query.following
+            className={`flex items-center gap-2 ${router.query.following
                 ? "fill-pink text-pink"
                 : "fill-black text-black"
-            }`}
+              }`}
           >
             {router.query.following ? (
               <RiUserShared2Fill />

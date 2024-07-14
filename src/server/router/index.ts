@@ -1,16 +1,10 @@
 import superjson from "superjson";
 
-import { commentRouter } from "./comment";
+import { chatRouter } from "./chat";
 import { createRouter } from "./context";
-import { followRouter } from "./follow";
-import { likeRouter } from "./like";
-import { videoRouter } from "./video";
 
 export const appRouter = createRouter()
   .transformer(superjson)
-  .merge("video.", videoRouter)
-  .merge("like.", likeRouter)
-  .merge("follow.", followRouter)
-  .merge("comment.", commentRouter);
+  .merge("chat.", chatRouter);
 
 export type AppRouter = typeof appRouter;
