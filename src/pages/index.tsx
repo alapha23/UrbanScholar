@@ -140,7 +140,7 @@ const Index: NextPage = () => {
                       className={`w-40 h-80 border p-2 overflow-y-auto ${selectedHospitals.includes(hospital.id) ? 'bg-blue-200' : ''}`}
                       onClick={() => toggleHospital(hospital.id)}
                       style={{ cursor: 'pointer' }}>
-                      <textarea className="w-full h-full border-none p-2" readOnly placeholder="Card content">{hospital.name}</textarea>
+                      <textarea className="w-full h-full border-none p-2" readOnly value="Card content">{hospital.name}</textarea>
                     </div>
                   ))}
                 </div>
